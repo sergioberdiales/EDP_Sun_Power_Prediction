@@ -7,7 +7,6 @@
 ```{r , warning= FALSE, message= FALSE}
 # Carga de librerías
 library(tidyverse)
-library(dtplyr)
 library(data.table)
 library(lubridate)
 library(GGally)
@@ -91,9 +90,11 @@ ggplot(data = sample_data, aes(x = global_radiation,  y = power)) +
 
 
 ```{r , message=FALSE}
-set.seed(42)
+
 
 data <- data %>% select(-Datetime)
+
+set.seed(42)
 
 trainIndex <- createDataPartition(data$power, p = .9,
                                   list = FALSE,
@@ -124,13 +125,13 @@ y_validation_data <- validation_data %>% select(power)
 #                     num.trees = 1000,
 #                     importance = "permutation")
 
-#The final values used for the model were mtry = 7, splitrule = variance and min.node.size = 5.
+
 
 rf_mod <- ranger(power ~ ., 
               data = train_data, 
-               num.trees = 10,
-                splitrule = "variance",
-                min.node.size = 1,
+               num.trees = 100,
+               splitrule = "variance",
+               min.node.size = 5,
                 seed = 42)
 
 
@@ -145,19 +146,55 @@ MAE
 r_squared <- R2(prediction,y_validation_data)
 r_squared
 
-saveRDS(rf_mod, "base_model_rf_1.rds")
+saveRDS(rf_mod, "base_model_rf_3.rds")
 
 ```
 
 
-Con este primer modelo estaríamos explicando un 85,6% de la variabilidad de la energía producida (valor del R cuadrado) con un error absoluto medio (MAE) de 16,72. Creo que con estos resultados me puedo arriesgar para un primer envío. 
+Con este primer modelo estaríamos explicando un 85,6% de la variabilidad de la energía producida (valor del R cuadrado) con un error absoluto medio (MAE) de 16,72. Creo que con estos resultados me puedo arriesgar para un primer envío (random forest 10 arboles, variance) 
+              num.trees = 10,
+               splitrule = "variance",
+               min.node.size = 1,
+                seed = 42)
+                
+Mismo modelo pero con 500 arboles y min node size = 5               
+                num.trees = 500,
+               splitrule = "variance",
+               min.node.size = 1,
+                seed = 42)
+  
+  
+  base_model_rf_3 
+                
+  [1] 15.92131
+[1] 0.8684656
+
 
 Así que hago mi primera predicción 
 ```{r , message=FALSE}
 
 # Generamos el dataset para la predicción
+pred_data <- meteo_data_18 %>% rename(global_radiation = `Global Radiation [W/m2]`,
+                        temp = `Ambient Temperature [ÂºC]`,
+                        wind_vel = `Wind Velocity [m/s]`,
+                        wind_dir = `Wind Direction [Âº]`,
+                        ultra_vi = `Ultraviolet [W/m2]`) %>%
+                        arrange(Datetime) %>%
+                        select(global_radiation, temp, wind_vel, wind_dir, ultra_vi)
 
 
+prediction <- predict(rf_mod, pred_data)
+
+predictions <- prediction$predictions %>%
+                              as.data.frame() 
+
+colnames(predictions) <- "B_Optimal - Power DC [W]"
+
+Datetime <- meteo_data_18 %>% select(Datetime) %>% arrange(Datetime)
+
+submission_01 <- bind_cols(Datetime, predictions)
+
+write_csv(submission_01, "submission_01.csv")
 
 ```
 

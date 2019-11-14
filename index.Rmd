@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r , warning= FALSE, message= FALSE}
 
 library(knitr)
+library(tidyverse)
 
 ```
 
@@ -31,7 +32,7 @@ include_graphics("imgs/2019-11-14_EDP_Sun_Power_Competition_Ranking.png")
 
   Hasta ahora sólo hay 7 participantes, no estoy seguro si hay un score de corte o no, como tienen establecido en otros challenges. El score lo calculan multiplicando el R cuadrado obtenido por 20. Así que ahora mismo las predicciones enviadas han conseguido los siguientes resultados en términos de R cuadrado.
   
-```{r , warning= FALSE, message=FALSE}
+```{r , warning= FALSE, message=FALSE, eval=FALSE}
 ranking <- read_delim("data/ranking_partipants.csv", delim = ";")
 
 ranking <- ranking %>% mutate(R2 = Score/20)
