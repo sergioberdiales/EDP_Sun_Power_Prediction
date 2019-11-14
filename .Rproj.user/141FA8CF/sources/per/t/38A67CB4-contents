@@ -1,0 +1,671 @@
+---
+title: "IALift Modelos Ascensor 4"
+author: "Sergio Berdiales"
+date: "03/10/2019"
+output: html_document
+---
+
+```{r , include= FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r , warning= FALSE, message= FALSE}
+# Carga de librerías
+library(tidyverse)
+library(lubridate)
+library(readxl)
+library(GGally)
+library(gridExtra)
+library(knitr)
+library(reticulate)
+library(scales)
+library(kableExtra)
+library(janitor)
+
+# Librerías para el modelado
+
+library(caret)
+library(ranger)
+```
+
+# Modelización Ascensor 4
+
+## Planteamiento del problema a solucionar
+
+En este caso nos encontramos ante un ascensor de calle de cuatro plantas del que disponemos datos de funcionamiento (148.408 registros) del periodo 27-02-2019 - 12-09-2019. Señalar aquí que existen dos periodos intermedios que suman entre los dos más de dos meses sin datos (del 16 de abril al 24 de mayo y del 3 al 31 de julio). 
+
+En la información utilizada existen dos tipos de llamadas, tipo "Hall" (51%) y tipo "Coche" (47%). Las llamadas tipo "Hall" son las que se realizan desde el "hall" del ascensor, es decir, desde los llamadores exteriores, mientras que las tipo "Coche" son las realizadas ya dentro del coche del ascensor, en el panel donde el usuario elige el destino de su viaje (solo un 1,7% de las llamadas no tienen registrada un tipo).
+
+Como el objetivo del proyecto es reducir los tiempos de espera de los usuarios cuando hacen una llamada tipo "Hall", sólo vamos a utilizar registros tipo "Hall". 
+
+En este ascensor en principio no está en funcionamiento ningún ajuste de parking.
+
+```{r , warning= FALSE, message= FALSE}
+
+# Cargamos tabla con todos los ascensores (no tiene conteos)
+
+data_lift <- read_rds("../2019-07_08_1_Generacion_tablas_datos_feb_jun/datasets/master_dataset/data_lift_feb_sep.rds")
+
+data_Ascensor_4 <- data_lift %>% 
+              filter(MachineId == 'Ascensor_4') %>%
+                      droplevels()
+
+# Carga de la tabla con los conteos de llamadas ya realizados
+data_Ascensor_4_hall <- read_rds("../2019-07_08_1_Generacion_tablas_datos_feb_jun/datasets/intermediate_train_test_datasets/data_Ascensor_4_hall.rds")
+
+```
+
+
+```{r , warning= FALSE, message= FALSE}
+
+calltype_Ascensor_4_table <- as.data.frame(table(data_Ascensor_4$CallType)) %>%
+                                  mutate(porcentaje =  scales::percent(Freq / sum(Freq))) %>% 
+  arrange(desc(Freq))
+
+calltype_Ascensor_4_table
+#write_csv(calltype_Ascensor_1_table, "csvs_finales/calltype_Ascensor_1_table.csv")
+
+```
+
+
+## Características de los datos
+
+### Número de viajes diarios.
+
+La información proporcionada de este ascensor comprende desde el 27 de febrero al 12 de septiembre de 2019, pero con dos amplios periodo de falta de datos.
+
+Representamos la evolución diaria en el número de llamadas del periodo.   
+
+```{r , warning= FALSE, message= FALSE, fig.width=10}
+
+conteo_por_fecha_0 <- data_Ascensor_4_hall %>% 
+                select(start_date, lab_day, prec) %>%
+                group_by(start_date, lab_day, prec) %>%
+                summarise(n = n()) 
+
+fechas <- conteo_por_fecha_0 %>% select(start_date) %>% 
+                                  ungroup() %>%  
+                                  complete(start_date = seq.Date(min(start_date), max(start_date), by = "day")) %>%
+                                  select(-lab_day) # Añadimos la funcion complete para que añadir NAs allí donde falte alguna fecha, es decir, no haya datos ese día
+
+
+conteo_por_fecha <- conteo_por_fecha_0 %>%
+                    right_join(fechas, by = "start_date") %>%
+                    ungroup() %>%
+                    mutate(lab_day = replace_na(lab_day, 0))
+                    
+
+conteo_por_fecha_plot_Ascensor_4 <- ggplot(data = conteo_por_fecha, aes(x = start_date, y = n, group = 1, col = lab_day)) + 
+                               geom_line(col = "grey") + 
+                               ylim(0, 1000)  +
+                              geom_point(alpha = 0.35) +
+                              labs(col = "Tipo de día") +
+                              ggtitle('Número de llamadas diarias tipo "Hall" - Ascensor 4')
+                              
+conteo_por_fecha_plot_Ascensor_4
+
+```
+
+
+```{r , warning= FALSE, message= FALSE}
+
+#summary(conteo_por_fecha$n)
+
+```
+Lo primero que salta a la vista son los periodos sin datos, que suman 68 días. (abril-mayo y julio). 
+
+La mediana del número de llamadas diaria es igual a 626, encontrándose la inmensa mayoría entre las 500 y las 750 llamadas. En agosto y septiembre se registra una mucha mayor variabilidad, cayendo varios días por debajo de las 500 llamadas (pendiente revisar estos día con tan pocas llamadas para descartar cualquier problema con la calidad de los datos).
+
+Al incluir la información del tipo de día (laborable contra no laborable) se ve claramente también cómo en general en los días no laborables se hace un uso menos intensivo del ascensor. 
+
+### Patrones de viajes
+
+Como decíamos se trata de un ascensor de 4 plantas, ¿pero cómo se distribuyen las llamadas por planta? ¿Esta distribución es la misma a lo largo del día? ¿Y durante la semana? 
+
+La __variable "EndFloorNumber"__ nos informa desde qué planta se realiza la llamada.
+
+En el siguiente gráfico vemos los porcentajes de llamadas desde cada planta.
+
+```{r , warning= FALSE, message= FALSE, fig.width=5, fig.height= 2.5}
+
+Ascensor_4_geom_bar_end_floor <- ggplot(data = data_Ascensor_4_hall, aes(x = EndFloorNumber, 
+                                                                           y = prop.table(stat(count)),
+                                                                           label = percent(prop.table(stat(count))))) + 
+                                    geom_bar() + 
+                                    geom_text(stat = 'count',
+                                              position = position_dodge(), 
+                                              vjust = 1.2, 
+                                              size = 4, 
+                                              colour = "white") + 
+                                    scale_y_continuous(labels = percent) + 
+                                    labs(y = 'Porcentaje')
+
+Ascensor_4_geom_bar_end_floor
+```
+
+Como vemos en el gráfico las plantas desde las que se realiza más llamadas son la planta 0 (34,5%) y la 2 (31,6%), con porcentajes superiores al 30% cada una de ellas, siguiéndole la 3 (21,1%) y ya muy lejos la planta 1, con sólo un 12,8%. 
+
+Al calcular los porcentajes del gráfico anterior por hora del día vemos, que a excepción de las horas extremas del día (principio y final del día) la distribución de llamadas por planta de destino varía muy poco según la hora del día. 
+
+```{r , warning= FALSE, message= FALSE}
+porcentajes_llamadas_horas <- data_Ascensor_4_hall  %>% tabyl(EndFloorNumber, start_hour) %>%
+                  adorn_percentages("col") %>%
+                  adorn_pct_formatting(digits = 0)
+porcentajes_llamadas_horas
+```
+
+El que estas proporciones sean tan constantes durante el día y no se produzcan patrones distintos  de llamadas según el momento de la jornada va a dificultar los ejercicios de predicción. No tenemos, como pasaría por ejemplo en un edificio de oficinas, cambios claros de los flujos de las llamadas durante el día.
+
+En un edificio de oficinas se presentan típicamente como mínimo tres franjas muy diferenciadas, una primera durante las primeras horas de la mañana, coincidiendo con el acceso al edificio, donde se produce un "uppeak" del tráfico desde la planta 0 al resto de plantas, una segunda denominada "interfloor", donde se incrementa el tráfico entre las plantas intermedias y finalmente un "downpeak" a partir de la hora de salida del trabajo, donde el tráfico es mayoritariamente hacia la planta 0 desde el resto de plantas. 
+
+En este caso, como podemos observar en el siguiente gráfico, en principio carecemos de patrones claros que se sucedan unos a otros durante la jornada, a excepción del principio y el fin del día, donde sí se observa una cierta preminencia de las llamadas desde la planta 0. 
+
+```{r , warning= FALSE, message= FALSE, fig.width=10, fig.height= 5}
+
+calls_count_by_hours_lift <- data_Ascensor_4_hall  %>%
+                            select(EndFloorNumber, start_hour) %>%
+                            group_by(EndFloorNumber, start_hour) %>%
+                            summarise(n = n())
+
+ggplot(calls_count_by_hours_lift, aes(x = as.numeric(start_hour), y = n)) +
+                  geom_area(aes(colour = EndFloorNumber, fill = EndFloorNumber), position = 'stack') +
+                  labs(x = "Hora del día") 
+
+
+```
+
+Repetimos el mismo gráfico de reparto de llamadas por __EndFloorNumber__ pero esta vez incluyendo la información de la variable __StartFloorNumber__, que nos informa en qué planta se encontraba el coche del ascensor cuando recibió la llamada. 
+
+```{r , warning= FALSE, message= FALSE, fig.width=6, fig.height= 2.5}
+
+Ascensor_4_geom_bar_end_start_floor <- ggplot(data = data_Ascensor_4_hall, aes(x = EndFloorNumber, 
+                                                                           y = prop.table(stat(count)),
+                                                                           label = percent(prop.table(stat(count))),
+                                                                            fill = StartFloorNumber)) + 
+                                    geom_bar() + 
+                                    scale_y_continuous(labels = percent) + 
+                                    labs(y = 'Porcentaje')
+
+
+Ascensor_4_geom_bar_end_start_floor
+```
+
+
+Y vemos directamente el reparto de StartFloorNumber en otro gráfico de barras. 
+```{r , warning= FALSE, message= FALSE, fig.width=5, fig.height= 2.5}
+
+Ascensor_4_geom_bar_start_floor <- ggplot(data = data_Ascensor_4_hall, aes(x = StartFloorNumber, 
+                                                                           y = prop.table(stat(count)),
+                                                                           label = percent(prop.table(stat(count))))) + 
+                                    geom_bar() + 
+                                    geom_text(stat = 'count',
+                                              position = position_dodge(), 
+                                              vjust = 1.2, 
+                                              size = 4, 
+                                              colour = "white") + 
+                                    scale_y_continuous(labels = percent) + 
+                                    labs(y = 'Porcentaje')
+
+Ascensor_4_geom_bar_start_floor
+```
+
+En este último gráfico vemos el reparto de la variable StartFloorNumber entre las 4 plantas. ¿Pero qué nos dicen estos porcentajes? Parece contradictorio con la información vista hasta ahora que la planta 0 aparezca como la tercera en porcentaje en esta ocasión cuando es la planta desde la que más se solicita el ascensor, o que la planta 1 sea la segunda en porcentaje cuando es la última en número de llamadas por EndFloorNumber. 
+
+Para explicar estas aparentes contradicciones incluimos en el gráfico la información de la variable __StartStateId__, que nos informa en qué estado estaba el ascensor en el momento de la llamada: En "Servicio" (estacionado en una planta), subiendo o bajando.
+
+
+```{r , warning= FALSE, message= FALSE, fig.width=6, fig.height= 2.5}
+
+Ascensor_4_geom_bar_start_floor <- ggplot(data = data_Ascensor_4_hall, aes(x = StartFloorNumber, 
+                                                                           y = prop.table(stat(count)),
+                                                                           label = percent(prop.table(stat(count))),
+                                                                           fill = StartStateId)) + 
+                                    geom_bar() +
+                                    scale_y_continuous(labels = percent) +
+                                    labs(y = 'Porcentaje')
+
+Ascensor_4_geom_bar_start_floor
+```
+
+Y vemos cómo así los porcentajes ya cobran un poco más de sentido. Si nos fijamos por ejemplo solo en las franjas azules de las barras, "Servicio", vemos que sus proporciones son parecidas a las que veíamos en el gráfico de barras por EndFloorNumber. Y por ejemplo, en el caso de la planta 1, que aparece como la segunda en proporciones según la variable StartFloorNumber, vemos que la inmensa mayoría de sus registros se refieren a que el coche estaba pasando por la planta, subiendo o bajando, cuando recibió la llamada. Al contrario que, por ejemplo, la planta 0, cuya mayor proporción es igual a "Servicio", es decir, en su caso la mayor parte de las veces el coche estaba estacionado cuando recibió la llamada.  
+
+
+La __variable "Up"__ nos indica si el usuario llama al ascensor para subir o para bajar. Las llamadas desde la planta 0 siempre serán para subir, las de la 3 siempre para bajar, pero en la 1 y 2 el usuario sí que va a tener la opción de aportar información sobre el sentido de su viaje a través del llamador.   
+
+En este ascensor a lo largo del día se producen aproximadamente el mismo número de llamadas "Up" que "Down".  
+
+Aunque si vemos la distribución de esta variable durante las horas del día sí podríamos establecer un par de periodos de "uppeak", uno al inicio del día, hasta las 10 de la mañana, y  otro a partir de las 8 de la tarde.
+
+```{r , warning= FALSE, message= FALSE}
+porcentajes_up_horas <- data_Ascensor_4_hall  %>% tabyl(Up, start_hour) %>%
+                  adorn_percentages("col") %>%
+                  adorn_pct_formatting(digits = 0)
+porcentajes_up_horas
+```
+
+Para ver con más detalle la evolución de las llamadas durante el día a cada planta en los siguientes gráficos mostramos la media de llamadas horaria para cada una de estas. 
+
+```{r , warning= FALSE, message= FALSE, fig.width=10, fig.height= 5}
+
+media_llamadas_por_hora_planta_0_Ascensor_4 <- data_Ascensor_4_hall %>% 
+                filter(EndFloorNumber == '0') %>%
+                select(start_date, start_hour) %>%
+                group_by(start_date, start_hour) %>%
+                summarise(n = n()) %>%
+                ungroup() %>%
+                select(-start_date) %>%
+                group_by(start_hour) %>%
+                summarise(media = round(mean(n), 1))
+
+
+media_llamadas_por_hora_planta_0_plot_Ascensor_4 <- ggplot(data = media_llamadas_por_hora_planta_0_Ascensor_4, aes(x =as.numeric(start_hour), y = media, group_by(1))) + 
+  geom_line() +
+  ggtitle('Media de llamadas por hora - Planta 0') +
+  labs(x = "Hora del día")
+
+
+
+
+media_llamadas_por_hora_planta_1_Ascensor_4 <- data_Ascensor_4_hall %>% 
+                filter(EndFloorNumber == '1') %>%
+                select(start_date, start_hour) %>%
+                group_by(start_date, start_hour) %>%
+                summarise(n = n()) %>%
+                ungroup() %>%
+                select(-start_date) %>%
+                group_by(start_hour) %>%
+                summarise(media = round(mean(n), 1))
+
+
+media_llamadas_por_hora_planta_1_plot_Ascensor_4 <- ggplot(data = media_llamadas_por_hora_planta_1_Ascensor_4, aes(x = as.numeric(start_hour), y = media, group_by(1))) + 
+  geom_line() +
+  ggtitle('Media de llamadas por hora - Planta 1') +
+  labs(x = "Hora del día")
+
+
+
+
+media_llamadas_por_hora_planta_2_Ascensor_4 <- data_Ascensor_4_hall %>% 
+                filter(EndFloorNumber == '2') %>%
+                select(start_date, start_hour) %>%
+                group_by(start_date, start_hour) %>%
+                summarise(n = n()) %>%
+                ungroup() %>%
+                select(-start_date) %>%
+                group_by(start_hour) %>%
+                summarise(media = round(mean(n), 1))
+
+
+media_llamadas_por_hora_planta_2_plot_Ascensor_4 <- ggplot(data = media_llamadas_por_hora_planta_2_Ascensor_4, aes(x = as.numeric(start_hour), y = media, group_by(1))) + 
+  geom_line() +
+  ggtitle('Media de llamadas por hora - Planta 2') +
+  labs(x = "Hora del día")
+
+
+
+
+media_llamadas_por_hora_planta_3_Ascensor_4 <- data_Ascensor_4_hall %>% 
+                filter(EndFloorNumber == '3') %>%
+                select(start_date, start_hour) %>%
+                group_by(start_date, start_hour) %>%
+                summarise(n = n()) %>%
+                ungroup() %>%
+                select(-start_date) %>%
+                group_by(start_hour) %>%
+                summarise(media = round(mean(n), 1))
+
+
+media_llamadas_por_hora_planta_3_plot_Ascensor_4 <- ggplot(data = media_llamadas_por_hora_planta_3_Ascensor_4, aes(x = as.numeric(start_hour), y = media, group_by(1))) + 
+  geom_line() +
+  ggtitle('Media de llamadas por hora - Planta 3') +
+  labs(x = "Hora del día")
+
+
+
+grid <- grid.arrange(
+media_llamadas_por_hora_planta_0_plot_Ascensor_4,
+media_llamadas_por_hora_planta_1_plot_Ascensor_4,
+media_llamadas_por_hora_planta_2_plot_Ascensor_4,
+media_llamadas_por_hora_planta_3_plot_Ascensor_4,
+ncol=2)
+
+g <- arrangeGrob(media_llamadas_por_hora_planta_0_plot_Ascensor_4,
+media_llamadas_por_hora_planta_1_plot_Ascensor_4,
+media_llamadas_por_hora_planta_2_plot_Ascensor_4,
+media_llamadas_por_hora_planta_3_plot_Ascensor_4,
+ncol=2)
+
+```
+Al reducirse drásticamente el número de llamadas en las plantas 1, 2, y 3 a partir de las 20:00h y mantenerse constante en la planta 0 se produce el periodo "uppeak" de final del día. El del principio de la jornada vendría dado por el comienzo de actividad mucho más temprana desde la planta 0 que en el resto de plantas. 
+
+Promedio de __llamadas según el día de la semana.__
+
+Mostramos los promedios de llamadas por día de la semana. Vemos que de lunes a viernes hay una tendencia al alza de los viajes que se trunca en el fin de semana, especialmente los domingos.
+```{r , warning= FALSE, message= FALSE, fig.width=10, fig.height= 5}
+
+media_llamadas_por_dia_semana_Ascensor_4 <- data_Ascensor_4_hall %>% 
+                filter(start_date >= '2019-03-04',
+                       start_date <= '2019-09-08') %>%
+                select(start_date, start_wday) %>%
+                group_by(start_date, start_wday) %>%
+                summarise(n = n()) %>%
+                ungroup() %>% 
+                select(-start_date) %>%
+                group_by(start_wday) %>%
+                summarise(media = round(mean(n), 1))
+                
+media_llamadas_por_dia_semana_plot_Ascensor_4 <- ggplot(data = media_llamadas_por_dia_semana_Ascensor_4, aes(x = start_wday, y = media, group = 1)) + 
+                                      geom_line() +
+                                      ylim(0, 800) +
+                                      ggtitle('Promedio de llamadas tipo "Hall" por día de la semana - Ascensor 4')
+
+media_llamadas_por_dia_semana_plot_Ascensor_4
+
+```
+
+Promedio de __llamadas por hora por planta y día de la semana.__
+
+Vemos como varían en promedio el número de llamadas por planta de destino (EndFloorNumber) y hora del día y día de la semana.
+```{r , warning= FALSE, message= FALSE, fig.width=10, fig.height= 5}
+
+media_llamadas_por_hora_planta_Ascensor_4 <- data_Ascensor_4_hall  %>%
+                select(start_date, start_hour, EndFloorNumber, start_wday) %>%
+                group_by(start_date, start_hour, EndFloorNumber, start_wday) %>%
+                summarise(n = n()) %>%
+                ungroup() %>%
+                select(-start_date) %>%
+                group_by(start_hour, EndFloorNumber, start_wday) %>%
+                summarise(media = round(mean(n), 1)) 
+
+media_llamadas_por_hora_planta_plot_Ascensor_4 <- ggplot(data = media_llamadas_por_hora_planta_Ascensor_4, aes(x = as.numeric(start_hour), y = media, group_by(1))) + 
+  geom_line() +
+  ggtitle('Media de llamadas por hora') +
+  facet_grid(EndFloorNumber ~ start_wday) +
+  labs(x = "Hora del día")
+
+media_llamadas_por_hora_planta_plot_Ascensor_4
+
+```
+
+Como decíamos antes, la __variable "StartStateId"__ nos informa en qué situación se encontra el ascensor cuando es llamado. "Abajo" y "Arriba" significaría que el coche se está moviendo en uno de esos dos sentidos y "Servicio" que se encuentra parado en una planta. En este caso, como vemos en el gráfico dos terceras partes de las llamadas se producen cuando el ascensor ya se está dirigiendo hacia un destino. 
+
+```{r , warning= FALSE, message= FALSE, fig.width=5, fig.height= 2.5}
+
+Ascensor_4_geom_bar_StartStateId <- ggplot(data = data_Ascensor_4_hall, aes(x = StartStateId, 
+                                                                           y = prop.table(stat(count)),
+                                                                           label = percent(prop.table(stat(count))))) + 
+                                    geom_bar() + 
+                                    geom_text(stat = 'count',
+                                              position = position_dodge(), 
+                                              vjust = 1.2, 
+                                              size = 4, 
+                                              colour = "white") + 
+                                    scale_y_continuous(labels = percent) + 
+                                    labs(y = 'Porcentaje')
+
+Ascensor_4_geom_bar_StartStateId
+```
+
+Las proporciones de esta variable apenas cambian durante el día.
+```{r , warning= FALSE, message= FALSE}
+porcentajes_StartStateId_horas <- data_Ascensor_4_hall  %>% tabyl(StartStateId, start_hour) %>%
+                  adorn_percentages("col") %>%
+                  adorn_pct_formatting(digits = 0)
+porcentajes_StartStateId_horas
+```
+
+
+### Tiempos de viaje
+
+El objetivo final del proyecto es reducir los tiempos de espera de los usuarios en "hall", así que vamos a ver qué tiempos de espera existen y cómo se distribuyen dependiendo de distintas variables.
+
+Histograma de tiempos de espera con sólo tipo Hall agrupada por EndFloorNumber (destino del ascensor; en el caso de las llamadas tipo Hall sería desde dónde se ha hecho la llamada).
+```{r , warning= FALSE, message= FALSE, fig.width=10, fig.height= 5}
+
+seconds_wait_hist_Ascensor_4_hall_endfloor <- ggplot(data = data_Ascensor_4_hall %>% filter(SecondsWait < 400), aes(x = SecondsWait, fill=EndFloorNumber)) + 
+  geom_histogram(bins = 60) +
+  ggtitle("Histograma de tiempos de espera por planta de destino - Ascensor 4")
+
+seconds_wait_hist_Ascensor_4_hall_endfloor
+
+  
+```
+
+```{r , warning= FALSE, message= FALSE, fig.width=10, fig.height= 5}
+
+seconds_wait_hist_Ascensor_4_hall_endfloor_grid <- ggplot(data = data_Ascensor_4_hall %>% filter(SecondsWait < 400), aes(x = SecondsWait)) + 
+  geom_histogram(bins = 60) +
+  ggtitle("Histograma de tiempos de espera por planta de destino - Ascensor 4") +
+                                                    facet_grid(rows = vars(EndFloorNumber))
+
+seconds_wait_hist_Ascensor_4_hall_endfloor_grid
+
+  
+```
+
+  
+Y en el siguiente conjunto de gráficos se muestran las distribuciones de tiempos de espera según la planta de destino (EndFloorNumber), la planta donde se encontraba el coche en el momento de la llamada (StartFloorNumber) y el valor de la variable Up, que nos informa de la dirección de la llamada.
+```{r , warning= FALSE, message= FALSE, fig.width=10, fig.height= 7}
+
+labels_start <- c("0" = "StartFloorNumber 0", "1" = "StartFloorNumber 1", "2" = "StartFloorNumber 2", "3" = "StartFloorNumber 3")
+
+labels_end <- c("0" = "EndFloorNumber 0", "1" = "EndFloorNumber 1", "2" = "EndFloorNumber 2", "3" = "EndFloorNumber 3")
+
+seconds_wait_hist_Ascensor_4_hall_end_floor <- ggplot(data = data_Ascensor_4_hall %>% filter(SecondsWait < 400), aes(x = SecondsWait, fill=Up)) + 
+  geom_histogram(bins = 60) +
+  labs(title = "Histogramas de tiempos de espera por las variables EndFloorNumber, StartFloorNumber y Up.",
+       subtitle = "Ascensor 4 - Periodo 27-02-2019 - 12-09-2019",
+       caption = "EndFloorNumber: Planta destino de la llamada. StartFloorNumber: Planta de la que parte el ascensor. Up: Dirección de la llamada.  0: Abajo. 1: Arriba.") +
+  facet_grid(cols = vars(EndFloorNumber), rows = vars(StartFloorNumber), labeller=labeller(StartFloorNumber = labels_start, EndFloorNumber = labels_end)) +
+  theme(panel.grid.minor = element_blank())
+
+seconds_wait_hist_Ascensor_4_hall_end_floor
+
+  
+```
+  
+Vemos el anterior conjunto de gráficos sustituyendo la variable Up por la información recogida en la variable StartStateId, que nos informa de si el coche está parado en una planta ("Servicio") o está viajando en algún sentido, "Arriba" o "Abajo".
+```{r , warning= FALSE, message= FALSE, fig.width=10, fig.height= 7}
+
+labels_start <- c("0" = "StartFloorNumber 0", "1" = "StartFloorNumber 1", "2" = "StartFloorNumber 2", "3" = "StartFloorNumber 3")
+
+labels_end <- c("0" = "EndFloorNumber 0", "1" = "EndFloorNumber 1", "2" = "EndFloorNumber 2", "3" = "EndFloorNumber 3")
+
+seconds_wait_hist_Ascensor_4_hall_end_floor <- ggplot(data = data_Ascensor_4_hall %>% mutate %>% filter(SecondsWait < 400), aes(x = SecondsWait, fill=StartStateId)) + 
+  geom_histogram(bins = 60) +
+  labs(title = "Histogramas de tiempos de espera por las variables EndFloorNumber, StartFloorNumber y StartStateId.",
+       subtitle = "Ascensor 4 - Periodo 27-02-2019 - 12-09-2019",
+       caption = "EndFloorNumber: Planta destino de la llamada. StartFloorNumber: Planta de la que parte el ascensor. StartStateId: 'Servicio', el coche se encuentra parado en una planta. 'Abajo'-'Arriba', el coche está viajando en una u otra dirección.") +
+  facet_grid(cols = vars(EndFloorNumber), rows = vars(StartFloorNumber), labeller=labeller(StartFloorNumber = labels_start, EndFloorNumber = labels_end)) +
+  theme(panel.grid.minor = element_blank())
+
+seconds_wait_hist_Ascensor_4_hall_end_floor
+
+  
+```
+  
+  
+### Meteorología
+
+En el dataset hemos incluido una variable con datos de precipitaciones diarias de la ciudad de Santander. Entendemos que la lluvia puede tener cierta influencia en el uso de los ascensores, en la cantidad de usuarios o incluso en sus patrones de viajes.
+
+Construimos unos gráficos para comprobar si podemos ver algún tipo de relación directa entre el nivel de precipitaciones (media diaria de precipitaciones en mm) y el número de llamadas diarias.
+
+```{r , warning= FALSE, message= FALSE, fig.width=10}
+
+
+ggplot(data = conteo_por_fecha, aes(x = prec,  y = n)) + 
+            geom_point() + 
+            ylim(c(0, 900)) + 
+            labs(y = "Número de llamadas diarias",
+                      x = "Promedio de precipitaciones diarias (mm)") +
+            ggtitle("Relación Número de llamadas - Precipitaciones")
+
+
+```
+
+A primera vista no aparece nada. 
+
+Para intentar ver mejor la influencia de este factor en el número de llamadas vamos a hacer una regresión lineal, en la que vamos a definir como variable a explicar el número de llamadas diarias y como variable explicativa únicamente el nivel de precipitaciones.
+
+Regresión lineal. Predicción del número de llamadas diarias en función del nivel de precipitaciones
+
+```{r , warning= FALSE, message= FALSE}
+
+conteo_por_fecha_1 <- data_Ascensor_4_hall %>% 
+                select(start_date, lab_day, prec, start_wday) %>%
+                filter(start_date < '2019-07-02') %>%
+                group_by(start_date, lab_day, prec, start_wday) %>%
+                summarise(n = n())
+
+lm_calls_prec = lm(formula = n ~ prec, data = conteo_por_fecha_1)
+
+summary(lm_calls_prec)
+
+```
+
+Como se ve en los resultados de la regresión la variable "prec" no está explicando nada en relación al número de llamadas diarias en este ascensor.
+
+El que no hayamos hallado relación en este caso no quiere decir que no exista. Estamos utilizando datos agregados diarios y para comprobar una relación como esta tendríamos que tener acceso a datos de precipitaciones más desagregados.
+
+
+## Modelo final
+
+El objetivo del modelo es tratar de predecir desde qué planta se va a producir la siguiente llamada de un usuario en un momento determinado. Y el output final de cada predicción serán 4 probabilidades, una para cada planta del ascensor. 
+
+La métrica utilizada para seleccionar el modelo ideal para solucionar este problema ha sido la "Accuracy", que nos informa del porcentaje de acierto total del modelo. Es decir el ratio de aciertos en las predicciones sobre el total de predicciones, sin importar el acierto individual para cada clase (en este caso para cada planta).
+
+Aparte de esta métrica se ha considerado también el grado de complejidad de los modelos, priorizando siempre en la selección modelos más sencillos frente a otros más complejos. 
+
+El modelo final seleccionado es el modelo 29 de la pestaña "Resultados" de este [documento](https://docs.google.com/spreadsheets/d/1eOMfh_JbMztn9g_leqJbLVUQhJ9IufE3JSeL_GfRtt0/edit#gid=0). En esta hoja, además de los resultados de los modelos, también se pueden consultar las descripciones de todas las variables utilizadas.
+
+## Características del modelo final: 
+
+- __Rendimiento:__ La métrica utilizada para seleccionar al mejor modelo ha sido la "accuracy". Este modelo alcanza un accuracy del 53,4%.
+
+A continuación se incluye la tabla de confusión resultante de la evaluación del modelo en BigML.
+
+```{r , warning= FALSE, message= FALSE, out.width = "600px", out.height = "500px"}
+include_graphics("./imgs/2019-10-08_bigml_eval_Ascensor_4_model_29.png")
+```
+
+- __Datos utilizados:__ Para el entrenamiento del modelo se utilizó el 80% de los datos proporcionados por Thyssenkrupp del Ascensor 4, dejando el 20% restante para realizar evaluaciones de los modelos desarrollados. El periodo de tiempo del dataset original es del 2019-02-27 al 2019-09-12. La división de los datos se realizó de forma lineal, conservando la línea temporal de los datos. Así el dataset de training comprende desde el día 2019-02-27 hasta el 2019-08-14, quedándose el de test el resto de registros hasta el 2019-09-12.
+- __Algoritmo:__ Random forest. A lo largo de las diversas pruebas realizadas durante todo el proceso de desarrollo y evaluación de modelos los algoritmos tipo Random Forest han sido los que, de forma consistente, han obtenido mejores resultados.   
+
+- __Configuración algoritmo__. El modelo final ha sido entrenado en la aplicación BigML. Los principales elementos de su configuración en dicha herramienta es la siguiente:
+
+    - Número de árboles: 102 árboles. 
+    - Número de nodos máximo: 1972 nodos.
+    - Random candidate ratio: 0,74.
+    - Missing splits: No.
+    - Statistical pruning: No.
+    - Linear order.
+    
+- __Variables:__ En este modelo final se han incluido sólo 10 variables explicativas, las cuales se describen a continuación (las variables están ordenadas según orden de importancia en el modelo): 
+
+    - SecondsWait_1: Tiempo de espera de la llamada de "hall" inmediatamente anterior.
+    - EndFloor_State_1: Combinación de los valores retardados una vez de las variables EndFloorNumber y StartStateId.
+    - StartFloorNumber: La planta donde se encuentra el ascensor en el momento de la llamada.
+    - StartStateId: Es el estado en el que se encuentra el ascensor en el momento de recibir la llamada. En los datos utilizados toma los valores "Servicio", "Arriba", "Abajo" y "Fallo".
+    - last_hour_calls_2: Conteo de  llamadas "hall" desde la planta 2 en la última hora.
+    - last_three_minutes_calls_0: Conteo de  llamadas "hall" desde la planta 0 en los últimos 3 minutos.
+    - StartFloorNumber_1: La planta donde se encontraba el ascensor en el momento de la llamada inmediatamente anterior.
+    - last_three_minutes_calls_3: Conteo de  llamadas "hall" desde la planta 3 en los últimos 3 minutos.
+    - last_minute_calls_3: Conteo de  llamadas "hall" desde la planta 3 en en el último minuto.
+    - last_three_minutes_calls_2: Conteo de  llamadas "hall" desde la planta 2 en los últimos 3 minutos.
+    
+En el siguiente gráfico se representa la importancia de cada variable en el modelo final.  
+
+```{r , warning= FALSE, message= FALSE, out.width = "600px", out.height = "500px"}
+fields_importance <- read_csv("./bigml_models/model_29/BigML_5da06d7259f5c320e1000fd4_Ensemble_Field_Importances.csv") 
+
+ggplot(data = fields_importance, aes(x = reorder(Field, -Importance), y = Importance)) +
+            geom_col() + 
+            theme(axis.text.x = element_text(angle = 90)) +
+            ylab("Importancia") +
+            xlab("Variable") +
+            geom_text(aes(label = round(Importance, 2)), vjust = -0.5) + 
+            ylim(0, 0.20) 
+```
+
+
+- __Referencias BigML__: El nombre del proyecto es IALift_model_01. y sus referencias son las siguientes:   
+
+  - Identificador proyecto en BigML: project/5d9461fb42129f62680000e9  
+  - “Secret link” al modelo en BigML: https://bigml.com/shared/ensemble/2Y7z16UaU6ZH34gRQO8eWfdWq55  
+  - Identificador del modelo en BigML: ensemble/5da06d7259f5c320e1000fd4  
+
+## Descripción del proceso de desarrollo y selección de modelos
+
+Como modelo base partimos de un modelo con únicamente tres variables: start_hour, start_minute, start_wday. 
+
+Con este modelo alcanzamos una accuracy del 36%, ligeramente superior a si simplemente hubiésemos apostado a que todas las llamadas fuesen desde la planta 0, con el que alcanzaríamos un acierto global del 34,5% (porcentaje de llamadas desde la planta 0 en el periodo de test). 
+
+A partir de aquí se desarrolló un proceso iterativo de creación, inclusión y selección de variables. Todas las variables testadas, así como los resultados de parte de los modelos se encuentran registrados en este [documento](https://docs.google.com/spreadsheets/d/1eOMfh_JbMztn9g_leqJbLVUQhJ9IufE3JSeL_GfRtt0/edit#gid=0).
+
+La selección del tipo de algoritmo (Random Forest) así como la configuración final de los parámetros del mismo se realizó a través de la ejecución en BigML de la opción [OptiML](https://blog.bigml.com/2018/05/08/introduction-to-optiml-automatic-model-optimization/) en varios momentos del proceso. El algoritmo Random Forest fue de forma consistente el que alcanzó mejores resultados independientemente de las variables incluidas en cada momento. 
+
+Como resultado de este proceso se seleccionó como modelo final el modelo descrito anteriormente. 
+
+__Listado de variables testadas:__
+
+EndFloorNumber: Variable a predecir. Planta de destino de la llamada.  
+start_hour: Variable derivada de la variable original "StartDate" de las tablas aportadas por Thyssen. Corresponde a la hora del día en que el ascensor recibió la llamada.  
+start_minute: Variable derivada de la variable original "StartDate" de las tablas aportadas por Thyssen. Corresponde al minuto en que el ascensor recibió la llamada.  
+start_wday: Variable derivada de la variable original "StartDate" de las tablas aportadas por Thyssen. Corresponde al día de la semana en que el ascensor recibió la llamada.  
+StartFloorNumber: La planta donde se encuentra el ascensor en el momento de la llamada.  
+StartFloorNumber_i: Valores retardado de la variable "StartFloorNumber". Si la variable se denomina "StartFloorNumber_3" devolverá la planta donde se encontraba el coche tres llamadas antes del registro actual.   
+EndFloorNumber_i: Valores retardados de la variable "EndFloorNumber". Si la variable se denomina "EndFloorNumber_1" devolverá la planta donde se encontraba el coche en la llamada justamente anterior a la del registro actual.   
+StartStateId: Es el estado en el que se encuentra el ascensor en el momento de recibir la llamada. En los datos utilizados toma los valores "Servicio", "Arriba", "Abajo" y "Fallo".
+StartStateId_i: Valores retardados de la variable "StartStateId".  
+Up_i: Valores retardados de la variable "Up".  
+lab_day: Esta variable indica si la fecha corresponde a un festivo o a un día laborable.  
+prec: Promedio diario de precipitaciones en la ciudad de Santander (mm).  
+last_hour_calls_0: Conteo de llamadas "hall" desde la planta 0 en la última hora.  
+last_hour_calls_1: Conteo de llamadas "hall" desde la planta 1 en la última hora.  
+last_hour_calls_2: Conteo de llamadas "hall" desde la planta 2 en la última hora.   
+last_hour_calls_3: Conteo de llamadas "hall" desde la planta 3 en la última hora.  
+perc_last_hour_calls_0: Porcentaje de llamadas "hall" desde la planta 0 en la última hora.  
+perc_last_hour_calls_1: Porcentaje de llamadas "hall" desde la planta 1 en la última hora.   
+perc_last_hour_calls_2: Porcentaje de llamadas "hall" desde la planta 2 en la última hora.  
+perc_last_hour_calls_3: Porcentaje de llamadas "hall" desde la planta 3 en la última hora.  
+last_quarter_hour_calls_0: Conteo de llamadas "hall" desde la planta 0 en el último cuarto de hora.  
+last_quarter_hour_calls_1: Conteo de llamadas "hall" desde la planta 1 en el último cuarto de hora.  
+last_quarter_hour_calls_2: Conteo de llamadas "hall" desde la planta 2 en el último cuarto de hora.  
+last_quarter_hour_calls_3: Conteo de llamadas "hall" desde la planta 3 en el último cuarto de hora.  
+last_three_hour_calls_0: Conteo de  llamadas "hall" desde la planta 0 en las últimas 3 horas.  
+last_three_hour_calls_1: Conteo de  llamadas "hall" desde la planta 1 en las últimas 3 horas.
+last_three_hour_calls_2: Conteo de  llamadas "hall" desde la planta 2 en las últimas 3 horas.  
+last_three_hour_calls_3: Conteo de  llamadas "hall" desde la planta 3 en las últimas 3 horas.  
+last_six_hour_calls_0: Conteo de  llamadas "hall" desde la planta 0 en las últimas 6 horas.  
+last_six_hour_calls_1: Conteo de  llamadas "hall" desde la planta 1 en las últimas 6 horas.  
+last_six_hour_calls_2: Conteo de  llamadas "hall" desde la planta 1 en las últimas 6 horas.  
+last_six_hour_calls_3: Conteo de  llamadas "hall" desde la planta 1 en las últimas 6 horas.  
+last_five_minutes_calls_0: Conteo de  llamadas "hall" desde la planta 0 en los últimos 5 minutos.  
+last_five_minutes_calls_1: Conteo de  llamadas "hall" desde la planta 1 en los últimos 5 minutos.  
+last_five_minutes_calls_2: Conteo de  llamadas "hall" desde la planta 2 en los últimos 5 minutos.  
+last_five_minutes_calls_3: Conteo de  llamadas "hall" desde la planta 3 en los últimos 5 minutos.  
+last_three_minutes_calls_0: Conteo de  llamadas "hall" desde la planta 0 en los últimos 3 minutos.  
+last_three_minutes_calls_1: Conteo de  llamadas "hall" desde la planta 1 en los últimos 3 minutos.  
+last_three_minutes_calls_2: Conteo de  llamadas "hall" desde la planta 2 en los últimos 3 minutos.  
+last_three_minutes_calls_3: Conteo de  llamadas "hall" desde la planta 3 en los últimos 3 minutos.  
+last_minute_calls_0: Conteo de  llamadas "hall" desde la planta 0 en el último minuto.  
+last_minute_calls_1: Conteo de  llamadas "hall" desde la planta 1 en el último minuto.  
+last_minute_calls_2: Conteo de  llamadas "hall" desde la planta 2 en el último minuto.  
+last_minute_calls_3: Conteo de  llamadas "hall" desde la planta 3 en el último minuto.  
+SecondsWait_i: Valores retardados de la variable "SecondsWait".  
+time_elapsed_last_call_i: Tiempo trascurrido entre llamadas (comenzando y yendo hacia atrás desde la llamada anterior al registro a predecir).  
+time_elapsed_last_call_0: Tiempo trascurrido desde la última llamada desde la planta 0.   
+time_elapsed_last_call_1: Tiempo trascurrido desde la última llamada desde la planta 1.  
+time_elapsed_last_call_2: Tiempo trascurrido desde la última llamada desde la planta 2.  
+time_elapsed_last_call_3: Tiempo trascurrido desde la última llamada desde la planta 3.    
+StartDoorOpen: Cuando tiene el valor 1 alguna de las puertas del ascensor estaba abierta al recibir la llamada.  
+StartDoorOpen_i: Valores retardados de la variable StartDoorOpen.  
+OnlyDoorCycle_i: Valores retardados de la variable OnlyDoorCycle.  
+EndFloor_State_i: Combinación de los valores retardados de EndFloorNumber y StartStateId.  
+EndFloor_State_StartFloor_i: Combinación de los valores retardados de EndFloorNumber, StartStateId y StartFloorNumber.  
+
+
+
+
+

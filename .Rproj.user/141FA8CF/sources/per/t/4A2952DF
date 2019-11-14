@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1573747131651.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3817144005",
+    "id" : "4A2952DF",
+    "lastKnownWriteTime" : 1572540452,
+    "last_content_update" : 1572540452,
+    "path" : "G:/Mi unidad/0_Competitions/house_prices/house_prices_submission_08.r",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "373,3",
+        "scrollLine" : "371"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

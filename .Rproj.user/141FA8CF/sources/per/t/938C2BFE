@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1573744836006.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "938C2BFE",
+    "lastKnownWriteTime" : 1560082316,
+    "last_content_update" : 1573744836006,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "3A577470",
+        "caption" : "meteo_data_18",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=meteo_data_18&cache_key=3A577470",
+        "displayedObservations" : "10079",
+        "environment" : "",
+        "expression" : "meteo_data_18",
+        "object" : "meteo_data_18",
+        "preview" : "0",
+        "totalObservations" : "10079",
+        "variables" : "10"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

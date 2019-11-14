@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1573747042891.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1059344265",
+    "id" : "95DBC6E2",
+    "lastKnownWriteTime" : 1571051163,
+    "last_content_update" : 1571051163,
+    "path" : "G:/Unidades compartidas/I+D+i/IALift/IALift_EDA_and_Models/2019-07-26_Descripcion_Modelos/_Modelos_R_Ascensor_4.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "300,3",
+        "scrollLine" : "289"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

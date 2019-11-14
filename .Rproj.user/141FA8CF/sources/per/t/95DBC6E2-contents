@@ -1,0 +1,801 @@
+---
+title: "Modelos en R"
+author: "Sergio Berdiales"
+date: "05/07/2019"
+output: html_document
+---
+
+# Descripción. Notebook para hacer pruebas de modelos en R
+
+Referencias:
+
+  - Este post está muy bien: https://uc-r.github.io/random_forests
+  - https://machinelearningmastery.com/tune-machine-learning-algorithms-in-r/
+  
+## Notas
+
+- 2019-09-06: Probé a incorporar mas valores lagged de este tipo de variables. Funcionó solo en el caso de la variable StartStateId. Queda pendiente el ver si al reducir el número de lagged valores de este tipo de variables podemos conseguir subir aún más la accuracy. Ahora mismo estamos en 0.5211.
+
+- Importancia de variables con Ranger.
+  - https://stackoverflow.com/questions/37279964/variable-importance-with-ranger
+  - https://alexisperrier.com/datascience/2015/08/27/feature-importance-random-forests-gini-accuracy.html
+  
+- Problema tratamiento por Ranger de factores no ordenados. He cambiado el parametro (respect.unordered.factors=TRUE) para el modelo 12, Accuracy: 0,5404 y ha bajado un poco sólo. No parece que estuviese suponiendo ningún problema 
+  
+
+
+```{r , include= FALSE}
+knitr::opts_chunk$set(echo = TRUE, knitr.table.format = "html")
+```
+
+```{r , warning= FALSE, message= FALSE}
+# Carga de librerías
+library(tidyverse)
+library(lubridate)
+library(readxl)
+library(GGally)
+library(gridExtra)
+library(knitr)
+library(reticulate)
+library(scales)
+library(kableExtra)
+library(janitor)
+
+# Librerías para el modelado
+
+library(caret)
+library(rpart.plot)
+library(ranger)
+```
+
+# Modelización Ascensor 4
+
+## Carga de datos
+```{r , warning= FALSE, message= FALSE, evaluate=FALSE}
+data <- read_rds("../2019-07_08_1_Generacion_tablas_datos_feb_jun/datasets/train_test_datasets/model_data_4.rds") 
+
+
+```
+
+```{r , warning= FALSE, message= FALSE}
+
+#data <- data %>% select(-last_minute_calls_0,                    -last_minute_calls_1,-last_minute_calls_2,-last_minute_calls_3)
+
+```
+Comprobacion tipos variables
+```{r , warning= FALSE, message= FALSE, evaluate=FALSE}
+glimpse(data)
+
+```
+
+## Train/Test dataset split
+
+Nos quedamos el 80% de los primeros registros para training y el resto para test. La división no la hacemos de forma aleatoria, sino de forma lineal, porque en los modelos hemos introducido variables tipo "lagged". 
+
+## Model Training / Evaluation
+
+```{r , warning= FALSE, message= FALSE, eval=FALSE}
+
+#Cargamos la tabla intermedia con los conteos y generamos el objeto "model_data_all_var" incluyendo todas las variables utilizadas en los modelos hasta ahora.
+
+data_Ascensor_4_hall <- read_rds("../2019-07_08_1_Generacion_tablas_datos_feb_jun/datasets/intermediate_train_test_datasets/data_Ascensor_4_hall.rds")
+
+
+model_data_all_var <- data_Ascensor_4_hall %>%
+              select(EndFloorNumber,
+                     start_month,
+                     start_hour, 
+                     start_minute,
+                     start_hour_minute,
+                     start_half_hour,
+                     start_quarter_hour,
+                     start_wday,
+                     StartFloorNumber,
+                     StartStateId,
+                     lab_day,
+                     last_hour_calls_0,
+                     last_hour_calls_1,
+                     last_hour_calls_2,
+                     last_hour_calls_3,
+                     last_three_hour_calls_0,
+                     last_three_hour_calls_1,
+                     last_three_hour_calls_2,
+                     last_three_hour_calls_3,
+                     last_six_hour_calls_0,
+                     last_six_hour_calls_1,
+                     last_six_hour_calls_2,
+                     last_six_hour_calls_3,
+                     last_quarter_hour_calls_0,
+                     last_quarter_hour_calls_1,
+                     last_quarter_hour_calls_2,
+                     last_quarter_hour_calls_3,
+                     last_ten_minutes_calls_0,
+                     last_ten_minutes_calls_1,
+                     last_ten_minutes_calls_2,
+                     last_ten_minutes_calls_3,
+                     last_five_minutes_calls_0,
+                     last_five_minutes_calls_1,
+                     last_five_minutes_calls_2,
+                     last_five_minutes_calls_3,
+                     last_three_minutes_calls_0,
+                     last_three_minutes_calls_1,
+                     last_three_minutes_calls_2,
+                     last_three_minutes_calls_3,
+                     last_minute_calls_0,
+                     last_minute_calls_1,
+                     last_minute_calls_2,
+                     last_minute_calls_3,
+                     prec,
+                     SecondsWait, 
+                     StartDoorOpen,
+                     OnlyDoorCycle,
+                     StartDate) %>%
+                     mutate(EndFloorNumber_1 = lag(EndFloorNumber, 1),
+                            EndFloorNumber_2 = lag(EndFloorNumber, 2),
+                            EndFloorNumber_3 = lag(EndFloorNumber, 3),
+                            EndFloorNumber_4 = lag(EndFloorNumber, 4),
+                            EndFloorNumber_5 = lag(EndFloorNumber, 5),
+                            EndFloorNumber_6 = lag(EndFloorNumber, 6),
+                            EndFloorNumber_7 = lag(EndFloorNumber, 7),
+                            EndFloorNumber_8 = lag(EndFloorNumber, 8),
+                            EndFloorNumber_9 = lag(EndFloorNumber, 9),
+                            EndFloorNumber_10 = lag(EndFloorNumber, 10),
+                            EndFloorNumber_11 = lag(EndFloorNumber, 11),
+                            EndFloorNumber_12 = lag(EndFloorNumber, 12),
+                            EndFloorNumber_13 = lag(EndFloorNumber, 13),
+                            EndFloorNumber_14 = lag(EndFloorNumber, 14),
+                            EndFloorNumber_15 = lag(EndFloorNumber, 15),
+                            EndFloorNumber_16 = lag(EndFloorNumber, 16),
+                            StartFloorNumber_1 = lag(StartFloorNumber, 1),
+                            StartFloorNumber_2 = lag(StartFloorNumber, 2),
+                            StartFloorNumber_3 = lag(StartFloorNumber, 3),
+                            StartFloorNumber_4 = lag(StartFloorNumber, 4),
+                            StartFloorNumber_5 = lag(StartFloorNumber, 5),
+                            StartFloorNumber_6 = lag(StartFloorNumber, 6),
+                            StartFloorNumber_7 = lag(StartFloorNumber, 7),
+                            StartFloorNumber_8 = lag(StartFloorNumber, 8),
+                            StartFloorNumber_9 = lag(StartFloorNumber, 9),
+                            StartFloorNumber_10 = lag(StartFloorNumber, 10),
+                            StartFloorNumber_11 = lag(StartFloorNumber, 11),
+                            StartFloorNumber_12 = lag(StartFloorNumber, 12),
+                            StartFloorNumber_13 = lag(StartFloorNumber, 13),
+                            StartFloorNumber_14 = lag(StartFloorNumber, 14),
+                            StartFloorNumber_15 = lag(StartFloorNumber, 15),
+                            StartFloorNumber_16 = lag(StartFloorNumber, 16),
+                            StartFloorNumber_17 = lag(StartFloorNumber, 17),
+                            StartStateId_1 = lag(StartStateId, 1),
+                            StartStateId_2 = lag(StartStateId, 2),
+                            StartStateId_3 = lag(StartStateId, 3),
+                            StartStateId_4 = lag(StartStateId, 4),
+                            StartStateId_5 = lag(StartStateId, 5),
+                            StartStateId_6 = lag(StartStateId, 6),
+                            StartStateId_7 = lag(StartStateId, 7),
+                            StartStateId_8 = lag(StartStateId, 8),
+                            StartStateId_9 = lag(StartStateId, 9),
+                            StartStateId_10 = lag(StartStateId, 10),
+                            StartStateId_11 = lag(StartStateId, 11),
+                            StartStateId_12 = lag(StartStateId, 12),
+                            StartStateId_13 = lag(StartStateId, 13),
+                            StartStateId_14 = lag(StartStateId, 14),
+                            StartStateId_15 = lag(StartStateId, 15),
+                            StartStateId_16 = lag(StartStateId, 16),
+                            StartStateId_17 = lag(StartStateId, 17),
+                            StartStateId_18 = lag(StartStateId, 18),
+                            StartStateId_19 = lag(StartStateId, 19),
+                            StartStateId_20 = lag(StartStateId, 20),
+                            StartStateId_21 = lag(StartStateId, 21),
+                            StartStateId_22 = lag(StartStateId, 22),
+                            StartStateId_23 = lag(StartStateId, 23),
+                            StartStateId_24 = lag(StartStateId, 24),
+                            StartStateId_25 = lag(StartStateId, 25),
+                            StartStateId_26 = lag(StartStateId, 26),
+                            StartStateId_27 = lag(StartStateId, 27),
+                            StartStateId_28 = lag(StartStateId, 28),
+                            StartStateId_29 = lag(StartStateId, 29),
+                            StartStateId_30 = lag(StartStateId, 30),
+                            StartStateId_31 = lag(StartStateId, 31),
+                            StartStateId_32 = lag(StartStateId, 32),
+                            SecondsWait_1 = lag(SecondsWait, 1),
+                            SecondsWait_2 = lag(SecondsWait, 2),
+                            SecondsWait_3 = lag(SecondsWait, 3),
+                            SecondsWait_4 = lag(SecondsWait, 4),
+                            SecondsWait_5 = lag(SecondsWait, 5),
+                            SecondsWait_6 = lag(SecondsWait, 6),
+                            SecondsWait_7 = lag(SecondsWait, 7),
+                            SecondsWait_8 = lag(SecondsWait, 8),
+                            SecondsWait_9 = lag(SecondsWait, 9),
+                            SecondsWait_10 = lag(SecondsWait, 10),
+                            SecondsWait_11 = lag(SecondsWait, 11),
+                            SecondsWait_12 = lag(SecondsWait, 12),
+                            SecondsWait_13 = lag(SecondsWait, 13),
+                            SecondsWait_14 = lag(SecondsWait, 14),
+                            SecondsWait_15 = lag(SecondsWait, 15),
+                            SecondsWait_16 = lag(SecondsWait, 16),
+                            StartDoorOpen_1 = lag(StartDoorOpen, 1),
+                            StartDoorOpen_2 = lag(StartDoorOpen, 2),
+                            StartDoorOpen_3 = lag(StartDoorOpen, 3),
+                            StartDoorOpen_4 = lag(StartDoorOpen, 4),
+                            StartDate_1 = lag(StartDate, 1),
+                            StartDate_2 = lag(StartDate, 2),
+                            StartDate_3 = lag(StartDate, 3),
+                            StartDate_4 = lag(StartDate, 4)
+                            )  %>% 
+                    mutate(time_elapsed_last_call = as.numeric(StartDate - StartDate_1),
+                           time_elapsed_last_call_1 = as.numeric(StartDate_1 - StartDate_2),
+                           time_elapsed_last_call_2 = as.numeric(StartDate_2 - StartDate_3),
+                           time_elapsed_last_call_3 = as.numeric(StartDate_3 - StartDate_4)) %>%
+                    mutate(EndFloor_State_1 = as.factor(paste0(EndFloorNumber_1, "-", StartStateId_1)),
+                           EndFloor_State_2 = as.factor(paste0(EndFloorNumber_2, "-", StartStateId_2)),
+                           EndFloor_State_3 = as.factor(paste0(EndFloorNumber_3, "-", StartStateId_3)),
+                           EndFloor_State_4 = as.factor(paste0(EndFloorNumber_4, "-", StartStateId_4)),
+                           EndFloor_State_5 = as.factor(paste0(EndFloorNumber_5, "-", StartStateId_5)),
+                           EndFloor_State_6 = as.factor(paste0(EndFloorNumber_6, "-", StartStateId_6)),
+                           EndFloor_State_7 = as.factor(paste0(EndFloorNumber_7, "-", StartStateId_7)),
+                           EndFloor_State_8 = as.factor(paste0(EndFloorNumber_8, "-", StartStateId_8)),
+                           EndFloor_State_StartFloor_1 = as.factor(paste0(EndFloorNumber_1, 
+                                                                          "-", 
+                                                                          StartStateId_1, StartFloorNumber_1)),
+                           EndFloor_State_StartFloor_2 = as.factor(paste0(EndFloorNumber_2, 
+                                                                          "-", 
+                                                                          StartStateId_2, StartFloorNumber_2)),
+                           EndFloor_State_StartFloor_3 = as.factor(paste0(EndFloorNumber_3, 
+                                                                          "-", 
+                                                                          StartStateId_3, StartFloorNumber_3)),
+                           EndFloor_State_StartFloor_4 = as.factor(paste0(EndFloorNumber_4, 
+                                                                          "-", 
+                                                                          StartStateId_4, StartFloorNumber_4))) %>%
+                    select(-SecondsWait, 
+                           -StartDoorOpen,
+                           -OnlyDoorCycle,
+                           -contains("StartDate"),
+                           -time_elapsed_last_call
+                            ) %>%
+                    na.omit()
+
+
+# Seleccionamos las variables que queremos utilizar y exportamos la tabla resultante en dos formatos, en csv para utilizarla en # BigML y en rds para correr modelos en R. El sufijo "4" es para señalar que los datos corresponden al Ascensor 4.
+
+
+data <- model_data_all_var %>%
+                select(-contains("last_ten"),
+                       -start_hour_minute,
+                       -EndFloor_State_2,
+                       -EndFloor_State_3,
+                       -EndFloor_State_4,
+                       -EndFloor_State_5,
+                       -EndFloor_State_6,
+                       -EndFloor_State_7,
+                       -EndFloor_State_8,
+                       -time_elapsed_last_call_1,
+                       -time_elapsed_last_call_2, 
+                       -time_elapsed_last_call_3,
+                       -contains("EndFloor_State_StartFloor"))
+                          
+
+
+n_train <- nrow(data) *0.8
+train <- data[1:n_train,]
+test <- data[(n_train + 1):nrow(data),]
+
+n_features <- length(names(data)) -1
+
+
+start_time <- Sys.time()
+
+rf_mod <- train %>%
+  ranger(EndFloorNumber ~ ., data = ., 
+                             num.trees = 500,
+                             mtry    = floor(n_features / 3),
+                             seed = 42,
+                              respect.unordered.factors=TRUE)
+
+end_time <- Sys.time()
+end_time - start_time
+
+## Model Evaluation
+x_test <- test %>% select(-EndFloorNumber)
+prediction <- predict(rf_mod, x_test)
+
+confusionMatrix(prediction$predictions, test$EndFloorNumber)
+
+```
+
+## Validación del modelo con datos de feb-jul sobre los datos de ago-sep
+
+Voy a testar el modelo 12, que tiene una Accuracy en test de 0,5405 (123 variables) sobre los nuevos datos enviados por Thyssen, que comprenden Agosto y parte de Septiembre.
+
+```{r , warning= FALSE, message= FALSE, eval=FALSE}
+
+data_feb_jul <- data %>% filter(!start_month %in% c("8", "9")) %>% select(-start_month)
+
+data_ago_sep <- data %>% filter(start_month %in% c("8", "9")) %>% select(-start_month)
+
+n_train <- nrow(data_feb_jul) *0.8
+train <- data_feb_jul[1:n_train,]
+test <- data_ago_sep
+
+n_features <- length(names(data)) -1
+
+
+start_time <- Sys.time()
+
+rf_mod <- train %>%
+  ranger(EndFloorNumber ~ ., data = ., 
+                             num.trees = 500,
+                             mtry    = floor(n_features / 3),
+                             seed = 42)
+
+end_time <- Sys.time()
+end_time - start_time
+
+## Model Evaluation
+x_test <- test %>% select(-EndFloorNumber)
+prediction <- predict(rf_mod, x_test)
+
+confusionMatrix(prediction$predictions, test$EndFloorNumber)
+
+
+
+```
+
+
+
+## Número óptimo de árboles
+
+Hemos calculado el accuracy global para distinto número de árboles con las siguientes variables, que son las que mejor han funcionado hasta ahora: 
+
+Variable target: EndFloorNumber. Valores: "0", "1", "2" y "3".  
+Variables explicativas: start_hour, start_minute, start_wday, StartFloorNumber, "lagged" EndFloorNumber (16), "lagged" StartFloorNumber (16), StartStateId, "lagged" StartStateId (16).
+
+Resto de parámetros:
+
+mtry    = floor(n_features / 3)
+seed = 42
+
+```{r , warning= FALSE, message= FALSE}
+
+
+n_trees_accuracy <- data.frame(n_trees = c(10, 50, 100, 200, 500, 1000, 2000, 5000),
+                              accuracy = c(0.4423, 0.4877, 0.4995, 0.4976, 0.503, 0.5041, 0.5057, 0.5042))            
+
+ggplot(data = n_trees_accuracy, aes(x = n_trees, y = accuracy, group = 1)) +
+          geom_line() +
+          geom_point() +
+          ylab("Accuracy") +
+          xlab("Número de árboles") +
+          ylim(0.4, 0.55)  + 
+          scale_x_continuous(breaks=c(10, 200, 500, 1000, 2000, 5000)) +
+          labs(title = "Modelo Random Forest: Accuracy vs Número de árboles")
+
+```
+
+```{r , warning= FALSE, message= FALSE}
+
+n_trees_accuracy 
+
+```
+
+## Pruebas con distintas variables
+
+
+### 1. 87 variables. 
+Variable target: EndFloorNumber. Valores: "0", "1", "2" y "3".  
+Variables explicativas:
+```{r , warning= FALSE, message= FALSE}
+
+#variables_87 <- names(model_data_4)
+#saveRDS(variables_87, "rds_files/variables_87.rds")
+
+variables_87 <- read_rds("rds_files/variables_87.rds")
+variables_87
+
+```
+
+
+Parámetros:
+num.trees: 500
+mtry    = floor(n_features / 3)
+seed = 42
+
+Accuracy: 0.5193
+
+Hice el mismo ejercicio pero añadiendo 16 variables retardadas más de EndFloorNumber. La Accuracy bajó hasta 0.5181.
+Mismo para StartFloorNumber. La Accuracy bajó hasta 0.5128.
+
+
+### 2. 103 variables. 
+Variable target: EndFloorNumber. Valores: "0", "1", "2" y "3".  
+Variables explicativas: Añadimos al modelo 1 16 variables retardadas más de StartStateId.
+
+Nota: Al quitar las 16 variables adicionales anteriores de StartFloorNumber se me quedó la 17, que casualmente mejora los resultados.
+
+```{r , warning= FALSE, message= FALSE}
+
+#variables_103 <- names(model_data_4)
+#saveRDS(variables_103, "rds_files/variables_103.rds")
+
+variables_103 <- read_rds("rds_files/variables_103.rds")
+variables_103
+
+```
+
+Parámetros:
+num.trees: 500
+mtry    = floor(n_features / 3)
+seed = 42
+
+Accuracy: 0.5211
+
+__El modelo mejora ligeramente. Es la primera vez que alcanzamos una accuracy mayor del 52%.__ 
+
+Si entrenamos el dataset con 1000 arboles la accuracy se reduce ligeramente: Accuracy : 0.5206. 
+
+Pero al añadir otras 16 variables de SecondsWait el modelo empeora. Accuracy : 0.5139. 
+
+## Probamos a eliminar variables que en otros momentos no mejoraron los resultados de los modelos
+
+
+### Empezamos eliminando las variables "prec" y "lab_day"
+
+```{r , warning= FALSE, message= FALSE}
+
+#variables_101 <- names(data)
+#saveRDS(variables_101, "rds_files/variables_101.rds")
+
+variables_101 <- read_rds("rds_files/variables_101.rds")
+variables_101
+
+```
+
+Empezamos por estas variables porque requieren información externa y no incluirlas simplificarían más el proceso. 
+
+Empeora un poco: Accuracy : 0.5165
+
+Al quitar solo lab_day baja a 0.517.
+Accuracy : 0.517
+
+Al quitar solo lab_day baja a 0.518.
+Accuracy : 0.518
+
+Conclusión: En principio nos quedaríamos con ellas. Pero habría que ver si merece la pena incluirlas por el trabajo extra que implicarían al poner el modelo en producción (sobre todo en el caso de la variable "prec").
+
+### -StartStateId_31, -StartStateId_32
+
+Si elimino estas variables el modelo empeora sensiblemente. Accuracy: 0.5142
+
+Así que en vez de reducirlas voy a aumentar los valores retardados de esta variable.
+
+Aumentando las retardadas hasta 48 el modelo empeora. Accuracy : 0.5128.
+Pruebo hasta 40. Accuracy : 0.5183
+Pruebo hasta 36. Accuracy : 0.5178
+Pruebo hasta 34. Accuracy :  0.5175
+
+
+### Pruebo a incluir las variables perc_last_hour_calls_i
+
+Estas variables inicialmente no habían funcionado.
+
+Accuracy : 0.5201
+
+El modelo empeora ligeramente. Definitivamente dejamos estas variables fuera.
+
+### EndFloorNumber
+
+Al probar hasta el 32 los resultados empeoraron. Vamos a probar con valores entre 16 y 32.
+
+Pruebo hasta 18. Accuracy : 0.5197 
+Prueba hasta 17. Accuracy : 0.5177
+
+No estamos mejorando al añadir más valores retardados. ¿Y si quitamos alguno?
+
+Al quitar el 16 el modelo empeora: Accuracy : 0.5164.
+
+### -SecondsWait_16
+
+Accuracy : 0.5181
+
+### Quito todas las variables "last"
+
+Baja un poquito.
+
+Accuracy : 0.5125.
+
+### Variable "Up"
+
+Al incluir 16 valores retardados de la variable Up el modelo funciona ligeramente peor.
+Accuracy : 0.5179.
+
+Probamos a incluir sólo 8.
+Accuracy : 0.5181
+
+Probamos a incluir sólo 4.
+Accuracy : 0.5165
+
+Probamos a incluir sólo 1.
+Accuracy : 0.5199
+
+Definitivamente esta variable no mejora los resultados. La apartamos por tanto de cualquier combinación de aquí en adelante.
+
+
+### StartDoorOpen
+
+Incluyo esta variable. Los resultados empeoran. Accuracy : 0.5176.
+
+Si incluyo 4 valores retardados de esta misma variable la accuracy se incrementa un poco: Accuracy : 0.5218
+
+Al incluir 8 los resultados descienden: Accuracy : 0.5176
+
+Con 6. Accuracy : 0.5204
+
+### OnlyDoorCycle
+
+4 retardadas
+Accuracy : 0.5194.
+8 retardadas
+Accuracy : 0.52
+
+No parece que aporten.
+
+### start_minute
+
+Si quito esta variable la accuracy baja muy ligeramente: Accuracy : 0.5205.
+
+
+
+### Last_five_minutes_calls
+
+Añadimos las variables con los conteos de los últimos 5 minutos.
+
+Mejora sustancialmente el accuracy, prácticamente un punto.
+
+Accuracy : 0.531
+
+
+
+### Last_minute_calls
+
+Añadimos las variables con los conteos del último minuto.
+
+Mejora sustancialmente el accuracy.
+
+Accuracy : 0.5372
+
+
+
+### Last_three_minutes_calls
+
+Añadimos las variables con los conteos de los tres últimos minutos.
+
+Desciende un poco la accuracy.
+
+Accuracy : 0.5349
+
+### Last_six_hours_calls
+
+Añadimos las variables con los conteos de las 6 últimas horas.
+
+Con last_three_minutes incluida. Accuracy : 0.5375
+Sin last_three_minutes. Accuracy : 0.5336.
+
+__NOTA IMPORTANTE__: Atención a estos efectos. Una variable puede no parecer aportar en un momenoto dado, pero al "combinarse" con una nueva empezar a aportar algo. Ya pasó esto con "prec" y "lab_day".
+
+
+### Last_ten_minutes_calls
+
+Baja ligeramente la accuracy. Pero lo voy a dejar por el momento.
+Accuracy : 0.5352
+
+
+### Sustituir start_minute por start_hour_minute
+
+Baja el accuracy: Accuracy : 0.5322 
+¿Y si dejamos las dos? Accuracy : 0.5349.
+
+Quitamos las variables de last_ten_minutes: Accuracy : 0.5333
+
+Convierto start_hour_minute de character a factor. No hay cambio. Accuracy : 0.5333. 
+
+Vuelvo a dejar solo start_hour_minute: Accuracy : 0.5348.
+Dejo solo start_minute:  Accuracy : 0.5379.
+
+
+### Crear variable retardada combinada con EndFloorNumber y StartStateId: EndFloor_State_i
+
+Con una retardada la accuracy sube y supera el límite del 54%. Accuracy : 0.5405
+Pruebo con 2. Accuracy : 0.5375
+Pruebo con 3. Accuracy : 0.5349
+Pruebo con 4. Accuracy : 0.5361  
+Pruebo con 8. Accuracy : 0.5354
+
+Con una retardada de esta variable subimos la accuracy pero si empezamos a incluir más empieza a bajar.
+
+### Incluir variable con el tiempo transcurrido desde la última llamada. Variable time_elapsed_last_call
+
+Mejora muchísimo la accuracy (duda sobre su inclusión)
+Accuracy : 0.5628.
+
+### Incluir variable con el tiempo transcurrido desde penúltima y la llamada anterior a esta. Variable time_elapsed_last_call_1
+
+Mejoramos un poco la accuracy y aquí no parece que tengamos problema de "futurazo" como en la anterior.
+Accuracy : 0.5416.
+
+Si añadimos dos más de estas bajamos la accuracy: Accuracy : 0.537
+
+### Incluimos variable combinada de las retardadas de EndFloorNumber, StartStateId y StartFloorNumber: 
+
+
+Con una nos encontramos con una accuracy casi igual a la anterior
+Accuracy : 0.5417
+Con cuatro la accuracy baja. Accuracy : 0.5413.
+
+### Modelo con 1000 arboles
+
+
+### Incluir información de llamadas de tipo "car". 
+
+
+
+## Grid de parametros
+
+```{r , warning= FALSE, message= FALSE}
+
+tgrid <- expand.grid(
+  .mtry = 2:4,
+  .splitrule = "gini",
+  .min.node.size = c(10, 20)
+)
+```
+
+
+```{r , warning= FALSE, message= FALSE}
+model_caret <- train(EndFloorNumber  ~ ., data = data,
+                     method = "ranger",
+                     trControl = trainControl(method="cv", number = 5, verboseIter = T),
+                     tuneGrid = tgrid,
+                     num.trees = 100,
+                     importance = "permutation")
+
+```
+
+
+
+
+
+## Modelo con sólo coches estacionados
+
+```{r , warning= FALSE, message= FALSE}
+
+data_servicio <- data %>% filter(StartStateId == "Servicio")
+
+n_train <- nrow(data_servicio) *0.8
+train <- data_servicio[1:n_train,]
+test <- data_servicio[(n_train + 1):nrow(data_servicio),]
+
+```
+
+
+
+## Model Training
+
+```{r , warning= FALSE, message= FALSE}
+start_time <- Sys.time()
+
+rf_mod <- train %>%
+  ranger(EndFloorNumber ~ ., data= ., 
+                             num.trees = 500,
+                             seed = 42)
+
+end_time <- Sys.time()
+end_time - start_time
+
+rf_mod
+
+```
+
+```{r , warning= FALSE, message= FALSE}
+
+x_test <- test %>% select(-EndFloorNumber)
+prediction <- predict(rf_mod, x_test)
+
+confusionMatrix(prediction$predictions, test$EndFloorNumber)
+
+```
+
+
+Notas:
+
+- Variable "prec" diaria: Accuracy con "prec": 0,4915. Accuracy sin "prec": 0,4952. Como esperabamos no mejora los resultados.
+
+
+
+
+### Selección de variables
+
+__A CONTINUACIÓN SE DESCRIBE COMO SE REALIZÓ LA SELECCIÓN DE VARIABLES FINAL. PASÁNDOSE DE UN MODELO DE 124 VARIABLES A UNO DE 10__
+
+Resultados evaluación modelo 22
+
+```{r , warning= FALSE, message= FALSE, out.width = "600px", out.height = "500px"}
+include_graphics("./imgs/2019-10-08_bigml_eval_Ascensor_4_model_22.png")
+```
+
+¿Podemos conseguir tener un modelo más sencillo con un poder explicativo similar?
+
+Vemos en un gráfico la importancia de cada variable según BigML (*incluir explicación medición importancia en RF de BigML)
+
+Vemos en el siguiente gráfico cómo la importancia desciende rápidamente según avanzamos en el ranking de las variables más importantes para el modelo a las menos importantes.
+
+```{r , warning= FALSE, message= FALSE, out.width = "600px", out.height = "500px"}
+include_graphics("./imgs/2019-10-08_importancia_model_22_20_feautres.png")
+```
+
+Vamos a tratar de reducir el número de variables guiándonos por este ranking de importancia. Así que corremos varios random forest (con la misma configuración en BigML que el modelo 22) reduciendo el número de variables quedándonos con subconjuntos de las variables más importantes para el modelo.
+
+Ejecutamos 4 modelos. Con las 40, 20, 10 y 5 variables más importantes del modelo 22. 
+
+En el siguiente gráfico se puede ver el efecto sobre la accuracy de cada una de estas selecciones de variables.
+
+```{r , warning= FALSE, message= FALSE, out.width = "600px", out.height = "500px"}
+
+num_features <- c(5, 10, 20, 40, 124)
+
+accuracy <- c(0.498, 0.521, 0.522, 0.522, 0.525)
+
+features_selection <- data.frame(num_features, accuracy)
+
+ggplot(data = features_selection, aes(x = num_features, y = accuracy)) + 
+  geom_point() +
+  ylim(0, 0.60) + 
+  labs(title = "Número de variables vs Accuracy",
+       x = "Número de variables",
+       y = "Accuracy") +
+      geom_text(aes(label=accuracy),hjust=0.5, vjust=-1.2)
+```
+
+### Análisis de errores
+
+```{r , warning= FALSE, message= FALSE, out.width = "600px", out.height = "500px"}
+
+#prediction_model_22_red_10 <- read_csv()
+
+```
+
+
+## Anexos
+
+### Resultados evaluaciones de la selección de variables
+
+Ejecutamos el modelo con esas 40 variables y lo evaluamos. Lo que vemos es que reducir el número de variables de 124 a 40 apenas tiene impacto en el modelo. La accuracy pasa de 52,5% a 52,3%.
+```{r , warning= FALSE, message= FALSE, out.width = "600px", out.height = "500px"}
+include_graphics("./imgs/2019-10-08_bigml_eval_Ascensor_4_model_22_40_features.png")
+```
+
+
+Resultados 20 variables más importantes
+
+Exactamente el mismo resultado que con 40 variables.
+
+```{r , warning= FALSE, message= FALSE, out.width = "600px", out.height = "500px"}
+include_graphics("./imgs/2019-10-08_bigml_eval_Ascensor_4_model_22_20_features.png")
+```
+
+
+Resultados 10 variables más importantes
+
+La accuracy baja una décima más, hasta el 52,1%. Son 0,4 puntos respecto al modelo inicial.
+
+```{r , warning= FALSE, message= FALSE, out.width = "600px", out.height = "500px"}
+include_graphics("./imgs/2019-10-08_bigml_eval_Ascensor_4_model_22_10_features.png")
+```
+
+Resultados 5 variables más importantes
+
+Con las 5 primeras variables más importantes estaríamos obteniendo una accuracy cercana al 50%. Son 2,7 puntos de diferencia del modelo inicial.
+Accuracy: 49,8%
+
+```{r , warning= FALSE, message= FALSE, out.width = "600px", out.height = "500px"}
+include_graphics("./imgs/2019-10-08_bigml_eval_Ascensor_4_model_22_05_features.png")
+```
+
+
+

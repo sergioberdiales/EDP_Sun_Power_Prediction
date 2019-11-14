@@ -1,0 +1,481 @@
+
+library(tidyverse)
+library(ranger)
+library(caret)
+
+
+# Importing data
+
+train_data <- read_csv("./data/train.csv")
+test_data <- read_csv("./data/test.csv")
+data_description <- read.delim("./data/data_description.txt")
+submission_format <- read_csv("./data/sample_submission.csv")
+
+
+train_data <- train_data %>% mutate_if(is.character,as.factor) %>% select(-Id)
+test_data <- test_data %>% mutate_if(is.character,as.factor)
+
+X_test_ids <- test_data %>% select(Id)
+
+test_data <- test_data %>% select(-Id)
+
+train_data <- train_data %>% rename(SecondFlrSF = "2ndFlrSF")
+
+test_data <- test_data %>% rename(SecondFlrSF = "2ndFlrSF")
+
+train_data <- train_data %>% rename(FirstFlrSF = "1stFlrSF")
+
+test_data <- test_data %>% rename(FirstFlrSF = "1stFlrSF")
+
+train_data <- train_data %>% rename(ThreeFlorSF = "3SsnPorch")
+
+test_data <- test_data %>% rename(ThreeFlorSF = "3SsnPorch")
+
+# NA treatment
+
+# Train data NAs
+
+mean_LotFrontage <- mean(train_data$LotFrontage, na.rm = TRUE)
+
+train_data <- train_data %>% mutate(LotFrontage = replace_na(LotFrontage, mean_LotFrontage))
+
+mean_LotFrontage <- mean(test_data$LotFrontage, na.rm = TRUE)
+
+test_data <- test_data %>% mutate(LotFrontage = replace_na(LotFrontage, mean_LotFrontage))
+
+# We drop the Alley column
+
+train_data <- train_data %>% select(-Alley)
+
+test_data <- test_data %>% select(-Alley)
+
+# We replace the MasVnrType NAs by "None"
+
+train_data <- train_data %>% mutate(MasVnrType = replace_na(MasVnrType, "None"))
+
+test_data <- test_data %>% mutate(MasVnrType = replace_na(MasVnrType, "None"))
+
+# We replace the MasVnrType NAs by the median
+
+median_MasVnrArea <- -median(train_data$MasVnrArea, na.rm= TRUE) 
+
+train_data <- train_data %>% mutate(MasVnrArea = replace_na(MasVnrArea, median_MasVnrArea))
+
+median_MasVnrArea <- -median(test_data$MasVnrArea, na.rm= TRUE) 
+
+test_data <- test_data %>% mutate(MasVnrArea = replace_na(MasVnrArea, median_MasVnrArea))
+
+# We replace the BsmtQual NAs by "None"
+
+train_data$BsmtQual <- as.character(train_data$BsmtQual)
+train_data <- train_data %>% mutate(BsmtQual = replace_na(BsmtQual, "None"))
+train_data$BsmtQual <- as.factor(train_data$BsmtQual)
+
+test_data$BsmtQual <- as.character(test_data$BsmtQual)
+test_data <- test_data %>% mutate(BsmtQual = replace_na(BsmtQual, "None"))
+test_data$BsmtQual <- as.factor(test_data$BsmtQual)
+
+# We replace the BsmtCond NAs by "None"
+
+train_data$BsmtCond <- as.character(train_data$BsmtCond)
+train_data <- train_data %>% mutate(BsmtCond = replace_na(BsmtCond, "None"))
+train_data$BsmtCond <- as.factor(train_data$BsmtCond)
+
+test_data$BsmtCond <- as.character(test_data$BsmtCond)
+test_data <- test_data %>% mutate(BsmtCond = replace_na(BsmtCond, "None"))
+test_data$BsmtCond <- as.factor(test_data$BsmtCond)
+
+# We replace the BsmtExposure NAs by "None"
+
+train_data$BsmtExposure <- as.character(train_data$BsmtExposure)
+train_data <- train_data %>% mutate(BsmtExposure = replace_na(BsmtExposure, "None"))
+train_data$BsmtExposure <- as.factor(train_data$BsmtExposure)
+
+test_data$BsmtExposure <- as.character(test_data$BsmtExposure)
+test_data <- test_data %>% mutate(BsmtExposure = replace_na(BsmtExposure, "None"))
+test_data$BsmtExposure <- as.factor(test_data$BsmtExposure)
+
+# We replace the BsmtFinType1 NAs by "None"
+
+train_data$BsmtFinType1 <- as.character(train_data$BsmtFinType1)
+train_data <- train_data %>% mutate(BsmtFinType1 = replace_na(BsmtFinType1, "None"))
+train_data$BsmtFinType1 <- as.factor(train_data$BsmtFinType1)
+
+test_data$BsmtFinType1 <- as.character(test_data$BsmtFinType1)
+test_data <- test_data %>% mutate(BsmtFinType1 = replace_na(BsmtFinType1, "None"))
+test_data$BsmtFinType1 <- as.factor(test_data$BsmtFinType1)
+
+# We replace the BsmtFinType2 NAs by "None"
+
+train_data$BsmtFinType2 <- as.character(train_data$BsmtFinType2)
+train_data <- train_data %>% mutate(BsmtFinType2 = replace_na(BsmtFinType2, "None"))
+train_data$BsmtFinType2 <- as.factor(train_data$BsmtFinType2)
+
+test_data$BsmtFinType2 <- as.character(test_data$BsmtFinType2)
+test_data <- test_data %>% mutate(BsmtFinType2 = replace_na(BsmtFinType2, "None"))
+test_data$BsmtFinType2 <- as.factor(test_data$BsmtFinType2)
+
+# We replace the Electrical NAs by "None"
+
+train_data$Electrical <- as.character(train_data$Electrical)
+train_data <- train_data %>% mutate(Electrical = replace_na(Electrical, "None"))
+train_data$Electrical <- as.factor(train_data$Electrical)
+
+test_data$Electrical <- as.character(test_data$Electrical)
+test_data <- test_data %>% mutate(Electrical = replace_na(Electrical, "None"))
+test_data$Electrical <- as.factor(test_data$Electrical)
+
+# We replace the FireplaceQu NAs by "None"
+
+train_data$FireplaceQu <- as.character(train_data$FireplaceQu)
+train_data <- train_data %>% mutate(FireplaceQu = replace_na(FireplaceQu, "None"))
+train_data$FireplaceQu <- as.factor(train_data$FireplaceQu)
+
+test_data$FireplaceQu <- as.character(test_data$FireplaceQu)
+test_data <- test_data %>% mutate(FireplaceQu = replace_na(FireplaceQu, "None"))
+test_data$FireplaceQu <- as.factor(test_data$FireplaceQu)
+
+# We replace the GarageType NAs by "None"
+
+train_data$GarageType <- as.character(train_data$GarageType)
+train_data <- train_data %>% mutate(GarageType = replace_na(GarageType, "None"))
+train_data$GarageType <- as.factor(train_data$GarageType)
+
+test_data$GarageType <- as.character(test_data$GarageType)
+test_data <- test_data %>% mutate(GarageType = replace_na(GarageType, "None"))
+test_data$GarageType <- as.factor(test_data$GarageType)
+
+# We replace the GarageYrBlt NAs by "1980"
+
+
+train_data <- train_data %>% mutate(GarageYrBlt = replace_na(GarageYrBlt, "1980"))
+train_data$GarageYrBlt <- as.factor(train_data$GarageYrBlt)
+
+
+test_data <- test_data %>% mutate(GarageYrBlt = replace_na(GarageYrBlt, "1980"))
+test_data$GarageYrBlt <- as.factor(test_data$GarageYrBlt)
+
+# We replace the GarageFinish NAs by "None"
+
+train_data$GarageFinish <- as.character(train_data$GarageFinish)
+train_data <- train_data %>% mutate(GarageFinish = replace_na(GarageFinish, "None"))
+train_data$GarageFinish <- as.factor(train_data$GarageFinish)
+
+test_data$GarageFinish <- as.character(test_data$GarageFinish)
+test_data <- test_data %>% mutate(GarageFinish = replace_na(GarageFinish, "None"))
+test_data$GarageFinish <- as.factor(test_data$GarageFinish)
+
+
+# We replace the GarageQual NAs by "TA"
+
+train_data$GarageQual <- as.character(train_data$GarageQual)
+train_data <- train_data %>% mutate(GarageQual = replace_na(GarageQual, "TA"))
+train_data$GarageQual <- as.factor(train_data$GarageQual)
+
+test_data$GarageQual <- as.character(test_data$GarageQual)
+test_data <- test_data %>% mutate(GarageQual = replace_na(GarageQual, "TA"))
+test_data$GarageQual <- as.factor(test_data$GarageQual)
+
+# We replace the GarageCond NAs by "TA"
+
+train_data$GarageCond <- as.character(train_data$GarageCond)
+train_data <- train_data %>% mutate(GarageCond = replace_na(GarageCond, "None"))
+train_data$GarageCond <- as.factor(train_data$GarageCond)
+
+test_data$GarageCond <- as.character(test_data$GarageCond)
+test_data <- test_data %>% mutate(GarageCond = replace_na(GarageCond, "None"))
+test_data$GarageCond <- as.factor(test_data$GarageCond)
+
+# We drop the PoolQC column
+
+train_data <- train_data %>% select(-PoolQC)
+test_data <- test_data %>% select(-PoolQC)
+
+# We replace the Fence NAs by "None"
+
+train_data$Fence <- as.character(train_data$Fence)
+train_data <- train_data %>% mutate(Fence = replace_na(Fence, "None"))
+train_data$Fence <- as.factor(train_data$Fence)
+
+test_data$Fence <- as.character(test_data$Fence)
+test_data <- test_data %>% mutate(Fence = replace_na(Fence, "None"))
+test_data$Fence <- as.factor(test_data$Fence)
+
+# We drop the MiscFeature column
+
+train_data <- train_data %>% select(-MiscFeature)
+test_data <- test_data %>% select(-MiscFeature)
+
+
+# We replace by the GarageArea mean.
+
+mean_GarageArea <- mean(test_data$GarageArea, na.rm = TRUE)
+
+test_data <- test_data %>% mutate(GarageArea = replace_na(GarageArea, mean_GarageArea))
+
+# We replace LotFrontage by the LotFrontage mean.
+
+mean_LotFrontage <- mean(test_data$LotFrontage, na.rm = TRUE)
+
+test_data <- test_data %>% mutate(LotFrontage = replace_na(LotFrontage, mean_LotFrontage))
+
+# We drop the Utilities column
+
+train_data <- train_data %>% select(-Utilities)
+test_data <- test_data %>% select(-Utilities)
+
+# We replace the MSZoning NAs by "RL"
+
+test_data$MSZoning <- as.character(test_data$MSZoning)
+test_data <- test_data %>% mutate(MSZoning = replace_na(MSZoning, "RL"))
+test_data$MSZoning <- as.factor(test_data$MSZoning)
+
+
+# We replace the Exterior1st NAs by "None"
+
+train_data$Exterior1st <- as.character(train_data$Exterior1st)
+train_data <- train_data %>% mutate(Exterior1st = replace_na(Exterior1st, "None"))
+train_data$Exterior1st <- as.factor(train_data$Exterior1st)
+
+test_data$Exterior1st <- as.character(test_data$Exterior1st)
+test_data <- test_data %>% mutate(Exterior1st = replace_na(Exterior1st, "None"))
+test_data$Exterior1st <- as.factor(test_data$Exterior1st)
+
+
+# We replace the Exterior2nd NAs by "None"
+
+train_data$Exterior2nd <- as.character(train_data$Exterior2nd)
+train_data <- train_data %>% mutate(Exterior2nd = replace_na(Exterior2nd, "None"))
+train_data$Exterior2nd <- as.factor(train_data$Exterior2nd)
+
+test_data$Exterior2nd <- as.character(test_data$Exterior2nd)
+test_data <- test_data %>% mutate(Exterior2nd = replace_na(Exterior2nd, "None"))
+test_data$Exterior2nd <- as.factor(test_data$Exterior2nd)
+
+# We replace BsmtFinSF1 by the BsmtFinSF1 median.
+
+median_BsmtFinSF1 <- median(test_data$BsmtFinSF1, na.rm = TRUE)
+
+test_data <- test_data %>% mutate(BsmtFinSF1 = replace_na(BsmtFinSF1, median_BsmtFinSF1))
+
+# We replace BsmtFinSF2 by the value 0.
+
+
+test_data <- test_data %>% mutate(BsmtFinSF2 = replace_na(BsmtFinSF2, 0))
+
+# We replace BsmtUnfSF by the BsmtUnfSF mean.
+
+mean_BsmtUnfSF <- mean(test_data$BsmtUnfSF, na.rm = TRUE)
+
+test_data <- test_data %>% mutate(BsmtUnfSF = replace_na(BsmtUnfSF, mean_BsmtUnfSF))
+
+# We replace TotalBsmtSF by the TotalBsmtSF mean.
+
+mean_TotalBsmtSF <- mean(test_data$TotalBsmtSF, na.rm = TRUE)
+
+test_data <- test_data %>% mutate(TotalBsmtSF = replace_na(TotalBsmtSF, mean_TotalBsmtSF))   
+
+
+# We replace BsmtFullBath by the value 0.
+
+
+test_data <- test_data %>% mutate(BsmtFullBath = replace_na(BsmtFullBath, 0))
+
+# We replace BBsmtHalfBath by the value 0.
+
+
+test_data <- test_data %>% mutate(BsmtHalfBath = replace_na(BsmtHalfBath, 0))
+
+
+# We replace the KitchenQual NAs by "TA"
+
+test_data$KitchenQual <- as.character(test_data$KitchenQual)
+test_data <- test_data %>% mutate(KitchenQual = replace_na(KitchenQual, "TA"))
+test_data$KitchenQual <- as.factor(test_data$KitchenQual)
+
+
+# We replace the Functional NAs by "Typ"
+
+test_data$Functional <- as.character(test_data$Functional)
+test_data <- test_data %>% mutate(Functional = replace_na(Functional, "Typ"))
+test_data$Functional <- as.factor(test_data$Functional)
+
+# We replace GarageCars by the value 0.
+
+
+test_data <- test_data %>% mutate(GarageCars = replace_na(GarageCars, 0))
+
+# We replace the SaleType NAs by "WD"
+
+test_data$SaleType <- as.character(test_data$SaleType)
+test_data <- test_data %>% mutate(SaleType = replace_na(SaleType, "WD"))
+test_data$SaleType <- as.factor(test_data$SaleType)
+
+
+# In this submission I'm goin to use every column which doesn't have any NA
+
+# train_data <- train_data %>% select(which(colMeans(is.na(.)) == 0))
+
+# test_data <- test_data %>% select(which(colMeans(is.na(.)) == 0))
+
+# Train / Validation datasets
+
+# Test with the 
+
+
+set.seed(42)
+
+trainIndex <- createDataPartition(train_data$SalePrice, p = .8,
+                                  list = FALSE,
+                                  times = 1)
+
+train_data <- train_data[trainIndex,] 
+
+validation_data <- train_data[-trainIndex,] 
+
+X_validation_data <- validation_data %>% select(-SalePrice)
+y_validation_data <- validation_data %>% select(SalePrice)
+
+# We create a base model with all the variables
+
+
+# Random Forest Model
+
+#tgrid <- expand.grid(
+ # .mtry = 2:7,
+  #.splitrule = "variance",
+  #.min.node.size = c(5, 10, 20)
+#)
+
+#model_caret <- train(SalePrice ~ ., data = train_data,
+#                     method = "ranger",
+#                     trControl = trainControl(method="cv", number = 5, verboseIter = T),
+#                     tuneGrid = tgrid,
+#                     num.trees = 1000,
+#                     importance = "permutation")
+
+#The final values used for the model were mtry = 7, splitrule = variance and min.node.size = 5.
+
+rf_mod <- ranger(SalePrice ~ ., 
+              data = train_data, 
+               num.trees = 3000,
+                splitrule = "variance",
+                mtry = 7,
+                min.node.size = 1,
+                seed = 42)
+
+
+prediction <- predict(rf_mod, X_validation_data)
+
+y_validation_data <- c(y_validation_data$SalePrice)
+prediction <- c(prediction$predictions)
+
+MAE <- MAE(y_validation_data, prediction)
+MAE
+
+# Submission 08
+
+# Test data
+
+
+X_test_data <- test_data 
+
+
+# We generate the prediction and the submission file
+
+
+
+prediction_08 <- predict(rf_mod, X_test_data)
+
+prediction_08 <- as.data.frame(prediction_08$predictions)
+
+names(prediction_08) <- "SalePrice"
+
+submission_08 <- bind_cols(X_test_ids, prediction_08)
+
+write_csv(submission_08, "./submissions/submission_08.csv")
+
+
+
+# Submission_01 Kaggle Score: 0.26623
+# linear model 
+# Submission date: 2019-10-25.
+# Ranking: 4308 / 4888. 
+# mae 29454.55
+
+# Submission_02 Kaggle Score: 0.0.24436
+# rf_mod <- ranger(SalePrice ~ LotArea + GarageArea + GrLivArea, 
+# data = train_data, 
+# num.trees = 500,
+# mtry = 3,
+# seed = 42)
+# Submission date: 2019-10-25.
+# Ranking: 4241 / 4873.
+# MAE 12086.03
+
+
+# Submission_03 
+# Kaggle Score: 0.21727
+# rf_mod <- ranger(SalePrice ~ LotArea + GarageArea + GrLivArea + SecondFlorSF + Neighborhood, 
+#data = train_data, 
+#num.trees = 3000,
+#mtry = 5,
+#seed = 42)
+# Submission date: 2019-10-30.
+# Ranking: 4148 / 4904.
+# MAE 10195.43
+
+
+# Submission_04 
+# Kaggle Score: 0.15908
+# rf_mod <- ranger(SalePrice ~ ., 
+# data = train_data, 
+# num.trees = 3000,
+# mtry = 5,
+# seed = 42)
+# Submission date: 2019-10-31.
+# Ranking: 3302 / 4904.
+# MAE 7934.949
+
+# Goal. To get a Kaggle Score below 0.12 in order to stay among the 10% best scores
+
+# Submission_05 
+# Kaggle Score: 0.15458
+#rf_mod <- ranger(SalePrice ~ ., 
+#                 data = train_data, 
+#                 num.trees = 3000,
+#                 splitrule = "variance",
+#                 mtry = 7,
+#                 min.node.size = 1,
+#                 seed = 42)
+# Submission date: 2019-10-31.
+# Ranking: 3188 / 4904.
+# MAE 6154.95
+
+# Submission_06 (including total area SF variable)
+# Kaggle Score: 0.15158
+#rf_mod <- ranger(SalePrice ~ ., 
+#                 data = train_data, 
+#                 num.trees = 3000,
+#                 splitrule = "variance",
+#                 mtry = 7,
+#                 min.node.size = 1,
+#                 seed = 42)
+# Submission date: 2019-10-31.
+# Ranking: 3068 / 4920.
+# MAE 6144.483
+
+
+# Submission_08 (dropping the id variable frome the train / test data) no improvement
+# Kaggle Score: 0.15430
+#rf_mod <- ranger(SalePrice ~ ., 
+#                 data = train_data, 
+#                 num.trees = 3000,
+#                 splitrule = "variance",
+#                 mtry = 7,
+#                 min.node.size = 1,
+#                 seed = 42)
+# Submission date: 2019-10-31.
+# Ranking: 
+# MAE 6112.154
+
