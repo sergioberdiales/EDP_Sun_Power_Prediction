@@ -157,52 +157,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2><span class="header-section-number">1.2</span> Importación de tablas de datos</h2>
 <pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Carga de librerías</span>
 <span class="kw">library</span>(tidyverse)
-<span class="kw">library</span>(data.table)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;data.table&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
-## 
-##     between, first, last</code></pre>
-<pre><code>## The following object is masked from &#39;package:purrr&#39;:
-## 
-##     transpose</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(lubridate)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;lubridate&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:data.table&#39;:
-## 
-##     hour, isoweek, mday, minute, month, quarter, second, wday,
-##     week, yday, year</code></pre>
-<pre><code>## The following object is masked from &#39;package:base&#39;:
-## 
-##     date</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(GGally)</code></pre>
-<pre><code>## Registered S3 method overwritten by &#39;GGally&#39;:
-##   method from   
-##   +.gg   ggplot2</code></pre>
-<pre><code>## 
-## Attaching package: &#39;GGally&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
-## 
-##     nasa</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(gridExtra)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;gridExtra&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
-## 
-##     combine</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(knitr)
+<span class="kw">library</span>(data.table)
+<span class="kw">library</span>(lubridate)
+<span class="kw">library</span>(GGally)
+<span class="kw">library</span>(gridExtra)
+<span class="kw">library</span>(knitr)
 
 <span class="co"># Librerías para el modelado</span>
 
-<span class="kw">library</span>(caret)</code></pre>
-<pre><code>## Loading required package: lattice</code></pre>
-<pre><code>## 
-## Attaching package: &#39;caret&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:purrr&#39;:
-## 
-##     lift</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(ranger)</code></pre>
+<span class="kw">library</span>(caret)
+<span class="kw">library</span>(ranger)</code></pre>
 <p>Importo todas las tablas con la información de producción y meteorología.
 Los datos meteorológicos los separo en dos datasets, el primero del año 2014 al 2017 para el entrenamiento y validación del modelo y el segundo con los datos de 2018 para tomar como datos de entrada para la predicción final.</p>
 <pre class="sourceCode r"><code class="sourceCode r">meteo_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="dt">path =</span> <span class="st">&quot;data&quot;</span>, <span class="dt">pattern =</span> <span class="st">&quot;sunlab-faro-meteo&quot;</span>)

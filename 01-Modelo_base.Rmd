@@ -4,7 +4,7 @@
 
 ## Importación de tablas de datos
 
-```{r }
+```{r , message=FALSE}
 # Carga de librerías
 library(tidyverse)
 library(data.table)
