@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>1 Modelo base. | EDP Sun Power prediction Challenge</title>
+  <meta name="description" content="1 Modelo base. | EDP Sun Power prediction Challenge" />
+  <meta name="generator" content="bookdown 0.10 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="1 Modelo base. | EDP Sun Power prediction Challenge" />
+  <meta property="og:type" content="book" />
+  
+  
+  
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="1 Modelo base. | EDP Sun Power prediction Challenge" />
+  
+  
+  
+
+<meta name="author" content="Sergio Berdiales" />
+
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="index.html">
+
+<script src="libs/jquery-2.2.3/jquery.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+
+
+
+
+
+
+
+<script src="libs/kePrint-0.0.1/kePrint.js"></script>
+
+
+<style type="text/css">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Introducción</a></li>
+<li class="chapter" data-level="1" data-path="modelo-base-.html"><a href="modelo-base-.html"><i class="fa fa-check"></i><b>1</b> Modelo base.</a><ul>
+<li class="chapter" data-level="1.1" data-path="modelo-base-.html"><a href="modelo-base-.html#datos."><i class="fa fa-check"></i><b>1.1</b> Datos.</a></li>
+<li class="chapter" data-level="1.2" data-path="modelo-base-.html"><a href="modelo-base-.html#importacion-de-tablas-de-datos"><i class="fa fa-check"></i><b>1.2</b> Importación de tablas de datos</a></li>
+<li class="chapter" data-level="1.3" data-path="modelo-base-.html"><a href="modelo-base-.html#modelo-base"><i class="fa fa-check"></i><b>1.3</b> Modelo base</a></li>
+</ul></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">EDP Sun Power prediction Challenge</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="modelo-base." class="section level1">
+<h1><span class="header-section-number">1</span> Modelo base.</h1>
+<div id="datos." class="section level2">
+<h2><span class="header-section-number">1.1</span> Datos.</h2>
+</div>
+<div id="importacion-de-tablas-de-datos" class="section level2">
+<h2><span class="header-section-number">1.2</span> Importación de tablas de datos</h2>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Carga de librerías</span>
+<span class="kw">library</span>(tidyverse)
+<span class="kw">library</span>(data.table)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;data.table&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     between, first, last</code></pre>
+<pre><code>## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     transpose</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(lubridate)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;lubridate&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:data.table&#39;:
+## 
+##     hour, isoweek, mday, minute, month, quarter, second, wday,
+##     week, yday, year</code></pre>
+<pre><code>## The following object is masked from &#39;package:base&#39;:
+## 
+##     date</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(GGally)</code></pre>
+<pre><code>## Registered S3 method overwritten by &#39;GGally&#39;:
+##   method from   
+##   +.gg   ggplot2</code></pre>
+<pre><code>## 
+## Attaching package: &#39;GGally&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     nasa</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(gridExtra)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;gridExtra&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     combine</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(knitr)
+
+<span class="co"># Librerías para el modelado</span>
+
+<span class="kw">library</span>(caret)</code></pre>
+<pre><code>## Loading required package: lattice</code></pre>
+<pre><code>## 
+## Attaching package: &#39;caret&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     lift</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(ranger)</code></pre>
+<p>Importo todas las tablas con la información de producción y meteorología.
+Los datos meteorológicos los separo en dos datasets, el primero del año 2014 al 2017 para el entrenamiento y validación del modelo y el segundo con los datos de 2018 para tomar como datos de entrada para la predicción final.</p>
+<pre class="sourceCode r"><code class="sourceCode r">meteo_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="dt">path =</span> <span class="st">&quot;data&quot;</span>, <span class="dt">pattern =</span> <span class="st">&quot;sunlab-faro-meteo&quot;</span>)
+data_chr &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="st">&quot;data/&quot;</span>, <span class="kw">length</span>(meteo_files))
+meteo_files &lt;-<span class="st"> </span><span class="kw">paste0</span>(data_chr,meteo_files)
+
+meteo_data &lt;-<span class="st"> </span>meteo_files <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">map_df</span>(<span class="op">~</span><span class="kw">fread</span>(.)) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as_tibble</span>()
+
+meteo_data_<span class="dv">14</span>_<span class="dv">17</span> &lt;-<span class="st"> </span>meteo_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(<span class="kw">year</span>(Datetime) <span class="op">&lt;</span><span class="st"> </span><span class="dv">2018</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as_tibble</span>()
+
+meteo_data_<span class="dv">18</span> &lt;-<span class="st"> </span>meteo_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(<span class="kw">year</span>(Datetime) <span class="op">==</span><span class="st"> </span><span class="dv">2018</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as_tibble</span>()
+
+
+production_files &lt;-<span class="st"> </span><span class="kw">list.files</span>(<span class="dt">path =</span> <span class="st">&quot;data&quot;</span>, <span class="dt">pattern =</span> <span class="st">&quot;sunlab-faro-pv&quot;</span>)
+data_chr &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="st">&quot;data/&quot;</span>, <span class="kw">length</span>(production_files))
+production_files &lt;-<span class="st"> </span><span class="kw">paste0</span>(data_chr,production_files)
+
+production_data &lt;-<span class="st"> </span>production_files <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">map_df</span>(<span class="op">~</span><span class="kw">fread</span>(.)) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as_tibble</span>()</code></pre>
+<p>Necesitamos un modelo que prediga la producción del módulo solar B en su orientación óptima. Así que en principio sólo nos tenemos que quedar con la variable <code>B_Optimal - Power DC [W]</code> del dataset “production_data” (también nos quedamos con la variable “Datetime”, que nos permitirá cruzar esta tabla con la que contiene los datos meteorológicos).</p>
+<pre class="sourceCode r"><code class="sourceCode r">production_data_optimal_b &lt;-<span class="st"> </span>production_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(Datetime, <span class="st">`</span><span class="dt">B_Optimal - Power DC [W]</span><span class="st">`</span>)</code></pre>
+<p>Echamos un vistazo a las variables meteorológicas.</p>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(meteo_data_<span class="dv">14</span>_<span class="dv">17</span>)</code></pre>
+<pre><code>##    Datetime         Ambient Temperature [ÂºC] Global Radiation [W/m2]
+##  Length:1886655     Min.   :-1.500e+09        Min.   :   0.7285      
+##  Class :character   1st Qu.: 1.400e+01        1st Qu.:   1.5651      
+##  Mode  :character   Median : 1.800e+01        Median :  10.1154      
+##                     Mean   :-7.137e+03        Mean   : 231.2153      
+##                     3rd Qu.: 2.300e+01        3rd Qu.: 437.6787      
+##                     Max.   : 3.800e+01        Max.   :1484.3798      
+##                                                                      
+##  Diffuse Radiation [W/m2] Ultraviolet [W/m2] Wind Velocity [m/s] 
+##  Min.   :  1.6            Min.   : 0.4954    Min.   :-1.500e+09  
+##  1st Qu.:  1.7            1st Qu.: 0.5106    1st Qu.: 1.000e+00  
+##  Median :  9.9            Median : 1.2513    Median : 2.000e+00  
+##  Mean   : 64.7            Mean   :14.1992    Mean   :-7.153e+03  
+##  3rd Qu.: 98.0            3rd Qu.:25.1983    3rd Qu.: 3.000e+00  
+##  Max.   :776.6            Max.   :85.5154    Max.   : 1.500e+01  
+##  NA&#39;s   :399744                                                  
+##  Wind Direction [Âº] Precipitation [mm] Atmospheric pressure [hPa]
+##  Min.   :  0.0       Min.   :0          Min.   :-1.500e+09        
+##  1st Qu.:124.2       1st Qu.:0          1st Qu.: 1.013e+03        
+##  Median :237.5       Median :0          Median : 1.016e+03        
+##  Mean   :214.2       Mean   :0          Mean   :-4.106e+03        
+##  3rd Qu.:298.3       3rd Qu.:0          3rd Qu.: 1.020e+03        
+##  Max.   :360.0       Max.   :2          Max.   : 1.036e+03        
+##                      NA&#39;s   :1301023    NA&#39;s   :1301023           
+##  Direct Radiation [W/m2]
+##  Min.   :  1.6          
+##  1st Qu.:  1.7          
+##  Median :  8.6          
+##  Mean   : 63.9          
+##  3rd Qu.: 91.9          
+##  Max.   :790.1          
+##  NA&#39;s   :1486911</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(meteo_data_<span class="dv">18</span>)</code></pre>
+<pre><code>##    Datetime         Ambient Temperature [ÂºC] Global Radiation [W/m2]
+##  Length:10079       Min.   : 5.100            Min.   :  0.9146       
+##  Class :character   1st Qu.: 9.117            1st Qu.:  1.5885       
+##  Mode  :character   Median :11.583            Median :  2.2009       
+##                     Mean   :11.764            Mean   :106.7527       
+##                     3rd Qu.:14.500            3rd Qu.:144.7449       
+##                     Max.   :19.200            Max.   :718.0579       
+##                                                                      
+##  Diffuse Radiation [W/m2] Ultraviolet [W/m2] Wind Velocity [m/s]
+##  Min.   :  1.597          Min.   : 0.4973    Min.   :0.000      
+##  1st Qu.:  1.659          1st Qu.: 0.5087    1st Qu.:1.683      
+##  Median :  2.063          Median : 0.5153    Median :2.450      
+##  Mean   : 35.135          Mean   : 6.2665    Mean   :2.497      
+##  3rd Qu.: 59.762          3rd Qu.: 9.4911    3rd Qu.:3.167      
+##  Max.   :368.154          Max.   :35.2159    Max.   :7.917      
+##                                                                 
+##  Wind Direction [Âº] Precipitation [mm] Atmospheric pressure [hPa]
+##  Min.   :  0.0       Min.   :0.00e+00   Min.   :1000              
+##  1st Qu.:270.6       1st Qu.:0.00e+00   1st Qu.:1003              
+##  Median :311.2       Median :0.00e+00   Median :1029              
+##  Mean   :277.9       Mean   :9.92e-05   Mean   :1020              
+##  3rd Qu.:323.2       3rd Qu.:0.00e+00   3rd Qu.:1032              
+##  Max.   :359.8       Max.   :1.00e+00   Max.   :1035              
+##                                                                   
+##  Direct Radiation [W/m2]
+##  Min.   : NA            
+##  1st Qu.: NA            
+##  Median : NA            
+##  Mean   :NaN            
+##  3rd Qu.: NA            
+##  Max.   : NA            
+##  NA&#39;s   :10079</code></pre>
+<p>Y para este modelo cortamos por lo sano y nos quedamos sólo con las variables que no presentan valores nulos en los datos de entrenamiento.</p>
+<pre class="sourceCode r"><code class="sourceCode r">meteo_data_<span class="dv">14</span>_<span class="dv">17</span>_global_rad &lt;-<span class="st"> </span>meteo_data_<span class="dv">14</span>_<span class="dv">17</span> <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(Datetime, 
+                                                           <span class="st">`</span><span class="dt">Global Radiation [W/m2]</span><span class="st">`</span>,
+                                                           <span class="st">`</span><span class="dt">Ambient Temperature [ÂºC]</span><span class="st">`</span>,
+                                                           <span class="st">`</span><span class="dt">Ultraviolet [W/m2]</span><span class="st">`</span>,
+                                                           <span class="st">`</span><span class="dt">Wind Velocity [m/s]</span><span class="st">`</span>,
+                                                           <span class="st">`</span><span class="dt">Wind Direction [Âº]</span><span class="st">`</span>)                                                  </code></pre>
+</div>
+<div id="modelo-base" class="section level2">
+<h2><span class="header-section-number">1.3</span> Modelo base</h2>
+<p>Cruzamos ambos datasets con la ayuda de la variable Datetime. Nos aseguramos de que no haya ningún valor nulo y renombramos las variables.</p>
+<pre class="sourceCode r"><code class="sourceCode r">data &lt;-<span class="st"> </span><span class="kw">left_join</span>(production_data_optimal_b, meteo_data_<span class="dv">14</span>_<span class="dv">17</span>_global_rad, <span class="dt">by =</span> <span class="st">&quot;Datetime&quot;</span>)  <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">na.omit</span>()
+
+data &lt;-<span class="st"> </span>data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">rename</span>(<span class="dt">global_radiation =</span> <span class="st">`</span><span class="dt">Global Radiation [W/m2]</span><span class="st">`</span>,
+                        <span class="dt">power =</span> <span class="st">`</span><span class="dt">B_Optimal - Power DC [W]</span><span class="st">`</span>,
+                        <span class="dt">temp =</span> <span class="st">`</span><span class="dt">Ambient Temperature [ÂºC]</span><span class="st">`</span>,
+                        <span class="dt">wind_vel =</span> <span class="st">`</span><span class="dt">Wind Velocity [m/s]</span><span class="st">`</span>,
+                        <span class="dt">wind_dir =</span> <span class="st">`</span><span class="dt">Wind Direction [Âº]</span><span class="st">`</span>,
+                        <span class="dt">ultra_vi =</span> <span class="st">`</span><span class="dt">Ultraviolet [W/m2]</span><span class="st">`</span>)</code></pre>
+<p>Echamos un vistazo gráficamente a la relación entre la energía producida y la radiación solar (sólo utilizamos una parte reducida de los datos para que “pinte” el gráfico rápidamente). Y como es de esperar la relación es clara y positiva.</p>
+<pre class="sourceCode r"><code class="sourceCode r">set.seed &lt;-<span class="st"> </span><span class="dv">42</span>
+sample_data &lt;-<span class="st"> </span><span class="kw">sample_n</span>(data, <span class="dv">10000</span>)
+<span class="kw">ggplot</span>(<span class="dt">data =</span> sample_data, <span class="kw">aes</span>(<span class="dt">x =</span> global_radiation,  <span class="dt">y =</span> power)) <span class="op">+</span>
+<span class="st">                        </span><span class="kw">geom_point</span>()</code></pre>
+<p><img src="_main_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p>Y pasamos a generar el modelo y a evaluarlo.</p>
+<pre class="sourceCode r"><code class="sourceCode r">data &lt;-<span class="st"> </span>data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>Datetime)
+
+<span class="kw">set.seed</span>(<span class="dv">42</span>)
+
+trainIndex &lt;-<span class="st"> </span><span class="kw">createDataPartition</span>(data<span class="op">$</span>power, <span class="dt">p =</span> <span class="fl">.9</span>,
+                                  <span class="dt">list =</span> <span class="ot">FALSE</span>,
+                                  <span class="dt">times =</span> <span class="dv">1</span>)
+
+train_data &lt;-<span class="st"> </span>data[trainIndex,] 
+
+validation_data &lt;-<span class="st"> </span>data[<span class="op">-</span>trainIndex,] 
+
+X_validation_data &lt;-<span class="st"> </span>validation_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>power)
+y_validation_data &lt;-<span class="st"> </span>validation_data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(power)
+
+<span class="co"># Generamos un modelo con un random forest de solo 100 árboles con el paquete Ranger. Utilizamos los valores por defecto de todos sus parámetros. </span>
+rf_mod &lt;-<span class="st"> </span><span class="kw">ranger</span>(power <span class="op">~</span><span class="st"> </span>., 
+              <span class="dt">data =</span> train_data, 
+               <span class="dt">num.trees =</span> <span class="dv">100</span>,
+                <span class="dt">seed =</span> <span class="dv">42</span>)
+
+<span class="co"># Generamos una predicción con el modelo generado con los datos de validación</span>
+prediction &lt;-<span class="st"> </span><span class="kw">predict</span>(rf_mod, X_validation_data)
+
+y_validation_data &lt;-<span class="st"> </span><span class="kw">c</span>(y_validation_data<span class="op">$</span>power)
+prediction &lt;-<span class="st"> </span><span class="kw">c</span>(prediction<span class="op">$</span>predictions)
+
+<span class="co"># Y lo evaluamos obteniendo el MAE y el R cuadrado.</span>
+MAE &lt;-<span class="st"> </span><span class="kw">MAE</span>(y_validation_data, prediction)
+MAE
+
+r_squared &lt;-<span class="st"> </span><span class="kw">R2</span>(prediction,y_validation_data)
+r_squared</code></pre>
+<p>Con este modelo obtenemos un MAE de 15,92 y un R cuadrado de 0,87</p>
+<p>[1] 15.92131
+[1] 0.8684656</p>
+<p>Utilizamos el modelo resultante para generar mi primera predicción.</p>
+<pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Generamos el dataset para la predicción</span>
+pred_data &lt;-<span class="st"> </span>meteo_data_<span class="dv">18</span> <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">rename</span>(<span class="dt">global_radiation =</span> <span class="st">`</span><span class="dt">Global Radiation [W/m2]</span><span class="st">`</span>,
+                        <span class="dt">temp =</span> <span class="st">`</span><span class="dt">Ambient Temperature [ÂºC]</span><span class="st">`</span>,
+                        <span class="dt">wind_vel =</span> <span class="st">`</span><span class="dt">Wind Velocity [m/s]</span><span class="st">`</span>,
+                        <span class="dt">wind_dir =</span> <span class="st">`</span><span class="dt">Wind Direction [Âº]</span><span class="st">`</span>,
+                        <span class="dt">ultra_vi =</span> <span class="st">`</span><span class="dt">Ultraviolet [W/m2]</span><span class="st">`</span>) <span class="op">%&gt;%</span>
+<span class="st">                        </span><span class="kw">arrange</span>(Datetime) <span class="op">%&gt;%</span>
+<span class="st">                        </span><span class="kw">select</span>(global_radiation, temp, wind_vel, wind_dir, ultra_vi)
+
+
+prediction &lt;-<span class="st"> </span><span class="kw">predict</span>(rf_mod, pred_data)
+
+predictions &lt;-<span class="st"> </span>prediction<span class="op">$</span>predictions <span class="op">%&gt;%</span>
+<span class="st">                              </span><span class="kw">as.data.frame</span>() 
+
+<span class="kw">colnames</span>(predictions) &lt;-<span class="st"> &quot;B_Optimal - Power DC [W]&quot;</span>
+
+Datetime &lt;-<span class="st"> </span>meteo_data_<span class="dv">18</span> <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(Datetime) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">arrange</span>(Datetime)
+
+submission_<span class="dv">01</span> &lt;-<span class="st"> </span><span class="kw">bind_cols</span>(Datetime, predictions)
+
+<span class="kw">write_csv</span>(submission_<span class="dv">01</span>, <span class="st">&quot;submission_01.csv&quot;</span>)</code></pre>
+<p>En el primer envío me devolvió un error. El problema es que no hay que enviar las predicciones para todos los registros disponibles de 2018, sino únicamente los que trae el template.
+Así que generamos de nuevo el csv, pero esta vez cruzandolo con el archivo “Solar_Template.csv”.</p>
+<pre class="sourceCode r"><code class="sourceCode r">template &lt;-<span class="st"> </span><span class="kw">read_delim</span>(<span class="st">&quot;data/Solar_Template.csv&quot;</span>, <span class="dt">delim =</span> <span class="st">&quot;;&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(Datetime)
+submission_<span class="dv">01</span> &lt;-<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;submission_01.csv&quot;</span>)
+
+submission_<span class="dv">02</span> &lt;-<span class="st"> </span>template <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">left_join</span>(submission_<span class="dv">01</span>, <span class="dt">by =</span> <span class="st">&quot;Datetime&quot;</span>)
+<span class="kw">write_csv</span>(submission_<span class="dv">02</span>, <span class="st">&quot;submission_02.csv&quot;</span>)</code></pre>
+<p>These are the results from my base model for this challenge. I used for this model the features with less number of NAs: <code>Global Radiation [W/m2]</code>, <code>Ambient Temperature [ÂºC]</code>, <code>Ultraviolet [W/m2]</code>, <code>Wind Velocity [m/s]</code> and <code>Wind Direction [Âº]</code>)
+I applied a random forest of just 100 trees to the data. I used the ranger package on R.
+rf_mod &lt;- ranger(power ~ .,
+data = train_data,
+num.trees = 100,
+splitrule = “variance”,
+min.node.size = 5,
+seed = 42)</p>
+
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="index.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/lunr.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"google": false,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"all": ["facebook", "google", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": null,
+"text": null
+},
+"history": {
+"link": null,
+"text": null
+},
+"download": null,
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+</body>
+
+</html>

@@ -31,7 +31,7 @@
   
   
 
-<link rel="next" href="data-importation-.html">
+<link rel="next" href="modelo-base-.html">
 <script src="libs/jquery-2.2.3/jquery.min.js"></script>
 <link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
 <link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
@@ -46,6 +46,7 @@
 
 
 
+<script src="libs/kePrint-0.0.1/kePrint.js"></script>
 
 
 <style type="text/css">
@@ -125,13 +126,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <ul class="summary">
 <li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Introducción</a></li>
-<li class="chapter" data-level="1" data-path="data-importation-.html"><a href="data-importation-.html"><i class="fa fa-check"></i><b>1</b> Data importation.</a><ul>
-<li class="chapter" data-level="1.1" data-path="data-importation-.html"><a href="data-importation-.html#data."><i class="fa fa-check"></i><b>1.1</b> Data.</a></li>
-<li class="chapter" data-level="1.2" data-path="data-importation-.html"><a href="data-importation-.html#datasets-importation"><i class="fa fa-check"></i><b>1.2</b> Datasets importation</a></li>
-<li class="chapter" data-level="1.3" data-path="data-importation-.html"><a href="data-importation-.html#modelo-base"><i class="fa fa-check"></i><b>1.3</b> Modelo base</a></li>
-</ul></li>
-<li class="chapter" data-level="2" data-path="second-section-.html"><a href="second-section-.html"><i class="fa fa-check"></i><b>2</b> Second section.</a><ul>
-<li class="chapter" data-level="2.1" data-path="second-section-.html"><a href="second-section-.html#first-item."><i class="fa fa-check"></i><b>2.1</b> First item.</a></li>
+<li class="chapter" data-level="1" data-path="modelo-base-.html"><a href="modelo-base-.html"><i class="fa fa-check"></i><b>1</b> Modelo base.</a><ul>
+<li class="chapter" data-level="1.1" data-path="modelo-base-.html"><a href="modelo-base-.html#datos."><i class="fa fa-check"></i><b>1.1</b> Datos.</a></li>
+<li class="chapter" data-level="1.2" data-path="modelo-base-.html"><a href="modelo-base-.html#importacion-de-tablas-de-datos"><i class="fa fa-check"></i><b>1.2</b> Importación de tablas de datos</a></li>
+<li class="chapter" data-level="1.3" data-path="modelo-base-.html"><a href="modelo-base-.html#modelo-base"><i class="fa fa-check"></i><b>1.3</b> Modelo base</a></li>
 </ul></li>
 </ul>
 
@@ -163,7 +161,103 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <pre class="sourceCode r"><code class="sourceCode r">ranking &lt;-<span class="st"> </span><span class="kw">read_delim</span>(<span class="st">&quot;data/ranking_partipants.csv&quot;</span>, <span class="dt">delim =</span> <span class="st">&quot;;&quot;</span>)
 
 ranking &lt;-<span class="st"> </span>ranking <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">mutate</span>(<span class="dt">R2 =</span> Score<span class="op">/</span><span class="dv">20</span>)
-ranking</code></pre>
+
+ranking <span class="op">%&gt;%</span><span class="st"> </span>kable <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">            </span><span class="kw">kable_styling</span>()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Team
+</th>
+<th style="text-align:right;">
+Score
+</th>
+<th style="text-align:right;">
+R2
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+trevi
+</td>
+<td style="text-align:right;">
+19.657
+</td>
+<td style="text-align:right;">
+0.98285
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Ayrton
+</td>
+<td style="text-align:right;">
+19.650
+</td>
+<td style="text-align:right;">
+0.98250
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Dusan
+</td>
+<td style="text-align:right;">
+19.356
+</td>
+<td style="text-align:right;">
+0.96780
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pedro Matos
+</td>
+<td style="text-align:right;">
+19.192
+</td>
+<td style="text-align:right;">
+0.95960
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PMAM78
+</td>
+<td style="text-align:right;">
+18.900
+</td>
+<td style="text-align:right;">
+0.94500
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+andre
+</td>
+<td style="text-align:right;">
+18.855
+</td>
+<td style="text-align:right;">
+0.94275
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Owls Team
+</td>
+<td style="text-align:right;">
+10.968
+</td>
+<td style="text-align:right;">
+0.54840
+</td>
+</tr>
+</tbody>
+</table>
 <p>Mi primer objetivo es entrar simplemente en el listado. Así que para intentar asegurar esto tendré que conseguir un R cuadrado superior al conseguido por el “Owls Team”. Lo de conseguir ir más arriba en el ranking de momento no lo veo muy plausible. El resto de R cuadrados los veo realmente muy, muy altos.</p>
 
 </div>
@@ -173,7 +267,7 @@ ranking</code></pre>
         </div>
       </div>
 
-<a href="data-importation-.html" class="navigation navigation-next navigation-unique" aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+<a href="modelo-base-.html" class="navigation navigation-next navigation-unique" aria-label="Next page"><i class="fa fa-angle-right"></i></a>
     </div>
   </div>
 <script src="libs/gitbook-2.6.7/js/app.min.js"></script>

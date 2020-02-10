@@ -1,0 +1,192 @@
+# Modelo base.
+
+## Datos.
+
+## Importación de tablas de datos
+
+```{r }
+# Carga de librerías
+library(tidyverse)
+library(data.table)
+library(lubridate)
+library(GGally)
+library(gridExtra)
+library(knitr)
+
+# Librerías para el modelado
+
+library(caret)
+library(ranger)
+```
+
+
+Importo todas las tablas con la información de producción y meteorología. 
+Los datos meteorológicos los separo en dos datasets, el primero del año 2014 al 2017 para el entrenamiento y validación del modelo y el segundo con los datos de 2018 para tomar como datos de entrada para la predicción final.
+```{r }
+
+meteo_files <- list.files(path = "data", pattern = "sunlab-faro-meteo")
+data_chr <- rep("data/", length(meteo_files))
+meteo_files <- paste0(data_chr,meteo_files)
+
+meteo_data <- meteo_files %>% map_df(~fread(.)) %>% as_tibble()
+
+meteo_data_14_17 <- meteo_data %>% filter(year(Datetime) < 2018) %>% as_tibble()
+
+meteo_data_18 <- meteo_data %>% filter(year(Datetime) == 2018) %>% as_tibble()
+
+
+production_files <- list.files(path = "data", pattern = "sunlab-faro-pv")
+data_chr <- rep("data/", length(production_files))
+production_files <- paste0(data_chr,production_files)
+
+production_data <- production_files %>% map_df(~fread(.)) %>% as_tibble()
+
+```
+
+Necesitamos un modelo que prediga la producción del módulo solar B en su orientación óptima. Así que en principio sólo nos tenemos que quedar con la variable `B_Optimal - Power DC [W]` del dataset "production_data" (también nos quedamos con la variable "Datetime", que nos permitirá cruzar esta tabla con la que contiene los datos meteorológicos). 
+
+```{r }
+production_data_optimal_b <- production_data %>% select(Datetime, `B_Optimal - Power DC [W]`)
+```
+
+Echamos un vistazo a las variables meteorológicas. 
+```{r }
+summary(meteo_data_14_17)
+```
+
+```{r }
+summary(meteo_data_18)
+```
+
+Y para este modelo cortamos por lo sano y nos quedamos sólo con las variables que no presentan valores nulos en los datos de entrenamiento.
+
+```{r }
+meteo_data_14_17_global_rad <- meteo_data_14_17 %>% select(Datetime, 
+                                                           `Global Radiation [W/m2]`,
+                                                           `Ambient Temperature [ÂºC]`,
+                                                           `Ultraviolet [W/m2]`,
+                                                           `Wind Velocity [m/s]`,
+                                                           `Wind Direction [Âº]`)                                                  
+```
+
+
+## Modelo base
+
+Cruzamos ambos datasets con la ayuda de la variable Datetime. Nos aseguramos de que no haya ningún valor nulo y renombramos las variables. 
+```{r }
+
+data <- left_join(production_data_optimal_b, meteo_data_14_17_global_rad, by = "Datetime")  %>% na.omit()
+
+data <- data %>% rename(global_radiation = `Global Radiation [W/m2]`,
+                        power = `B_Optimal - Power DC [W]`,
+                        temp = `Ambient Temperature [ÂºC]`,
+                        wind_vel = `Wind Velocity [m/s]`,
+                        wind_dir = `Wind Direction [Âº]`,
+                        ultra_vi = `Ultraviolet [W/m2]`)
+
+```
+
+
+Echamos un vistazo gráficamente a la relación entre la energía producida y la radiación solar (sólo utilizamos una parte reducida de los datos para que "pinte" el gráfico rápidamente). Y como es de esperar la relación es clara y positiva.
+```{r }
+set.seed <- 42
+sample_data <- sample_n(data, 10000)
+ggplot(data = sample_data, aes(x = global_radiation,  y = power)) +
+                        geom_point()
+```
+
+Y pasamos a generar el modelo y a evaluarlo.
+
+```{r , eval=FALSE}
+
+data <- data %>% select(-Datetime)
+
+set.seed(42)
+
+trainIndex <- createDataPartition(data$power, p = .9,
+                                  list = FALSE,
+                                  times = 1)
+
+train_data <- data[trainIndex,] 
+
+validation_data <- data[-trainIndex,] 
+
+X_validation_data <- validation_data %>% select(-power)
+y_validation_data <- validation_data %>% select(power)
+
+# Generamos un modelo con un random forest de solo 100 árboles con el paquete Ranger. Utilizamos los valores por defecto de todos sus parámetros. 
+rf_mod <- ranger(power ~ ., 
+              data = train_data, 
+               num.trees = 100,
+                seed = 42)
+
+# Generamos una predicción con el modelo generado con los datos de validación
+prediction <- predict(rf_mod, X_validation_data)
+
+y_validation_data <- c(y_validation_data$power)
+prediction <- c(prediction$predictions)
+
+# Y lo evaluamos obteniendo el MAE y el R cuadrado.
+MAE <- MAE(y_validation_data, prediction)
+MAE
+
+r_squared <- R2(prediction,y_validation_data)
+r_squared
+
+```
+
+Con este modelo obtenemos un MAE de 15,92 y un R cuadrado de 0,87
+
+                
+[1] 15.92131
+[1] 0.8684656
+
+
+Utilizamos el modelo resultante para generar mi primera predicción. 
+```{r , message=FALSE, eval=FALSE}
+
+# Generamos el dataset para la predicción
+pred_data <- meteo_data_18 %>% rename(global_radiation = `Global Radiation [W/m2]`,
+                        temp = `Ambient Temperature [ÂºC]`,
+                        wind_vel = `Wind Velocity [m/s]`,
+                        wind_dir = `Wind Direction [Âº]`,
+                        ultra_vi = `Ultraviolet [W/m2]`) %>%
+                        arrange(Datetime) %>%
+                        select(global_radiation, temp, wind_vel, wind_dir, ultra_vi)
+
+
+prediction <- predict(rf_mod, pred_data)
+
+predictions <- prediction$predictions %>%
+                              as.data.frame() 
+
+colnames(predictions) <- "B_Optimal - Power DC [W]"
+
+Datetime <- meteo_data_18 %>% select(Datetime) %>% arrange(Datetime)
+
+submission_01 <- bind_cols(Datetime, predictions)
+
+write_csv(submission_01, "submission_01.csv")
+
+```
+
+En el primer envío me devolvió un error. El problema es que no hay que enviar las predicciones para todos los registros disponibles de 2018, sino únicamente los que trae el template. 
+Así que generamos de nuevo el csv, pero esta vez cruzandolo con el archivo "Solar_Template.csv".
+
+```{r , message=FALSE, eval=FALSE}
+
+template <- read_delim("data/Solar_Template.csv", delim = ";") %>% select(Datetime)
+submission_01 <- read_csv("submission_01.csv")
+
+submission_02 <- template %>% left_join(submission_01, by = "Datetime")
+write_csv(submission_02, "submission_02.csv")
+```
+
+These are the results from my base model for this challenge. I used for this model the features with less number of NAs: `Global Radiation [W/m2]`, `Ambient Temperature [ÂºC]`,  `Ultraviolet [W/m2]`, `Wind Velocity [m/s]` and `Wind Direction [Âº]`) 
+I applied a random forest of just 100 trees to the data. I used the ranger package on R.
+rf_mod <- ranger(power ~ ., 
+              data = train_data, 
+               num.trees = 100,
+               splitrule = "variance",
+               min.node.size = 5,
+                seed = 42)

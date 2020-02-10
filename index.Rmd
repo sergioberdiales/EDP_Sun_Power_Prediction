@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(knitr)
 library(tidyverse)
+library(kableExtra)
 
 ```
 
@@ -25,18 +26,20 @@ En este notebook estoy incluyendo el proceso de creación de los modelos con los
 
 "The objective of this competition is to build an algorithm that predicts the production of solar module B (with optimal orientation) for the first seven days of 2018. For this, you can rely on the weather station data for these days."
 
-```{r , warning= FALSE, message= FALSE, out.width = "600px", echo=FALSE}
+```{r , echo= FALSE, out.width = "600px"}
 include_graphics("imgs/2019-11-14_EDP_Sun_Power_Competition_Ranking.png")
 ```
 
 
   Hasta ahora sólo hay 7 participantes, no estoy seguro si hay un score de corte o no, como tienen establecido en otros challenges. El score lo calculan multiplicando el R cuadrado obtenido por 20. Así que ahora mismo las predicciones enviadas han conseguido los siguientes resultados en términos de R cuadrado.
   
-```{r , warning= FALSE, message=FALSE, eval=FALSE}
+```{r , warning= FALSE, message=FALSE}
 ranking <- read_delim("data/ranking_partipants.csv", delim = ";")
 
 ranking <- ranking %>% mutate(R2 = Score/20)
-ranking
+
+ranking %>% kable %>% 
+            kable_styling()
 
 ```
 
